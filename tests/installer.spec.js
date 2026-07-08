@@ -79,6 +79,34 @@ test('late manifest fetch for a deselected variant does not overwrite the fallba
   await expect(page.locator('#fallback-files a[href$="wifi.bin"]')).toHaveCount(0);
 });
 
+test('late manifest fetch does not leak into another device page after navigation', async ({ page }) => {
+  const old = registry.devices.find((x) => Object.keys(x.firmware.stable).length > 1);
+  test.skip(!old, 'no multi-variant device in registry');
+  const next = registry.devices.find((x) => x.id !== old.id);
+  const manifestFor = (file) => JSON.stringify({
+    name: 't', version: '1',
+    builds: [{ chipFamily: 'ESP32', parts: [{ path: file, offset: 0 }] }],
+  });
+  await page.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, 'serial', { get: () => undefined });
+  });
+  // Old device's manifest responds slowly — after the user has navigated away.
+  await page.route(old.firmware.stable[Object.keys(old.firmware.stable)[0]], async (route) => {
+    await new Promise((r) => setTimeout(r, 1500));
+    await route.fulfill({ contentType: 'application/json', body: manifestFor('old-device.bin') });
+  });
+  await page.route(next.firmware.stable[Object.keys(next.firmware.stable)[0]], (route) =>
+    route.fulfill({ contentType: 'application/json', body: manifestFor('new-device.bin') }));
+  await page.goto(`/#/${old.id}`);
+  await expect(page.locator('.fallback')).toBeVisible();
+  await page.evaluate((hash) => { location.hash = hash; }, `#/${next.id}`);
+  await expect(page.locator('.device-head h1')).toHaveText(next.name);
+  await page.waitForTimeout(2500);
+  // The stale response must not overwrite the new device's fallback list.
+  await expect(page.locator('#fallback-files a[href$="old-device.bin"]')).toHaveCount(0);
+  await expect(page.locator('#fallback-files a[href$="new-device.bin"]')).toHaveCount(1);
+});
+
 test('release notes render from the GitHub API', async ({ page }) => {
   const d = registry.devices[0];
   await page.route('https://api.github.com/**', (route) =>
