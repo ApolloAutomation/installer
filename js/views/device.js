@@ -94,13 +94,17 @@ export function renderDevice(el, device) {
             <li>Or use the <a href="${device.githubPagesInstaller}">classic installer page</a> in Chrome/Edge.</li>
           </ul>
         </div>`;
+      const want = manifest;
       try {
         const res = await fetch(manifest);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         const m = await res.json();
+        if (selectedManifest(device, channel, variant) !== want) return; // stale fetch — selection changed
         const files = m.builds.flatMap((b) => b.parts.map((p) => new URL(p.path, manifest).href));
         el.querySelector('#fallback-files').innerHTML =
           files.map((f) => `<li><a href="${encodeURI(f)}">${f.split('/').pop().replace(/[<>&"']/g, '')}</a></li>`).join('');
       } catch {
+        if (selectedManifest(device, channel, variant) !== want) return; // stale fetch — selection changed
         el.querySelector('#fallback-files').innerHTML =
           `<li>Couldn't load the file list — download firmware from the
              <a href="https://github.com/${device.repo}/releases">latest release</a>.</li>`;

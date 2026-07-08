@@ -53,3 +53,28 @@ test('manual fallback renders when WebSerial is unavailable', async ({ page }) =
   await expect(page.locator('.fallback')).toBeVisible();
   await expect(page.locator('esp-web-install-button')).toHaveCount(0);
 });
+
+test('late manifest fetch for a deselected variant does not overwrite the fallback list', async ({ page }) => {
+  const d = registry.devices.find((x) => Object.keys(x.firmware.stable).length > 1);
+  test.skip(!d, 'no multi-variant device in registry');
+  const variants = Object.keys(d.firmware.stable);
+  const manifestFor = (file) => JSON.stringify({
+    name: 't', version: '1',
+    builds: [{ chipFamily: 'ESP32', parts: [{ path: file, offset: 0 }] }],
+  });
+  await page.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, 'serial', { get: () => undefined });
+  });
+  // First variant's manifest responds slowly, after the user has moved on.
+  await page.route(d.firmware.stable[variants[0]], async (route) => {
+    await new Promise((r) => setTimeout(r, 1500));
+    await route.fulfill({ contentType: 'application/json', body: manifestFor('wifi.bin') });
+  });
+  await page.route(d.firmware.stable[variants[1]], (route) =>
+    route.fulfill({ contentType: 'application/json', body: manifestFor('eth.bin') }));
+  await page.goto(`/#/${d.id}`);
+  await page.locator(`#variant-seg button[data-variant="${variants[1]}"]`).click();
+  await page.waitForTimeout(2500);
+  await expect(page.locator('#fallback-files a[href$="eth.bin"]')).toHaveCount(1);
+  await expect(page.locator('#fallback-files a[href$="wifi.bin"]')).toHaveCount(0);
+});
