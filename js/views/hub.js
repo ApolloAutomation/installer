@@ -1,4 +1,33 @@
-// js/views/hub.js — real implementation in Task 6
+// js/views/hub.js — device grid with category filters
 export function renderHub(el, registry) {
-  el.innerHTML = `<p class="loading">Hub view: ${registry.devices.length} devices (Task 6).</p>`;
+  const cats = [...new Set(registry.devices.map((d) => d.category))];
+  el.innerHTML = `
+    <section class="hero">
+      <h1>Flash your Apollo device from the browser</h1>
+      <p>Plug your device into USB, pick it below, and you'll be up and running in about two minutes.
+         Installing needs Chrome or Edge — on other browsers you'll get manual instructions.</p>
+    </section>
+    <div class="filters">
+      <button data-cat="all" class="active">All devices</button>
+      ${cats.map((c) => `<button data-cat="${c}">${c}</button>`).join('')}
+    </div>
+    <div class="device-grid">
+      ${registry.devices.map((d) => `
+        <a class="device-card" href="#/${d.id}" data-cat="${d.category}">
+          <img src="${d.image}" alt="${d.name}" loading="lazy">
+          <h3>${d.name}</h3>
+          <p>${d.description}</p>
+          <span class="go">Install →</span>
+        </a>`).join('')}
+    </div>`;
+
+  el.querySelector('.filters').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-cat]');
+    if (!btn) return;
+    el.querySelectorAll('.filters button').forEach((b) => b.classList.toggle('active', b === btn));
+    el.querySelectorAll('.device-card').forEach((card) => {
+      card.style.display =
+        btn.dataset.cat === 'all' || card.dataset.cat === btn.dataset.cat ? '' : 'none';
+    });
+  });
 }
