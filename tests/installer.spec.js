@@ -20,3 +20,36 @@ test('category filter narrows the grid', async ({ page }) => {
   await page.locator('.filters button[data-cat="all"]').click();
   await expect(page.locator('a.device-card:visible')).toHaveCount(registry.devices.length);
 });
+
+test('deep link renders the device wizard', async ({ page }) => {
+  const d = registry.devices[0];
+  await page.goto(`/#/${d.id}`);
+  await expect(page.locator('.device-head h1')).toHaveText(d.name);
+  await expect(page.locator('esp-web-install-button')).toHaveAttribute(
+    'manifest', d.firmware.stable[Object.keys(d.firmware.stable)[0]]);
+});
+
+test('channel/variant toggles rewire the install button', async ({ page }) => {
+  const d = registry.devices.find((x) => x.firmware.beta || Object.keys(x.firmware.stable).length > 1);
+  test.skip(!d, 'no multi-channel/variant device in registry');
+  await page.goto(`/#/${d.id}`);
+  if (d.firmware.beta) {
+    await page.locator('#channel-seg button[data-channel="beta"]').click();
+    const v = Object.keys(d.firmware.beta)[0];
+    await expect(page.locator('esp-web-install-button')).toHaveAttribute('manifest', d.firmware.beta[v]);
+  } else {
+    const variants = Object.keys(d.firmware.stable);
+    await page.locator(`#variant-seg button[data-variant="${variants[1]}"]`).click();
+    await expect(page.locator('esp-web-install-button')).toHaveAttribute('manifest', d.firmware.stable[variants[1]]);
+  }
+});
+
+test('manual fallback renders when WebSerial is unavailable', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, 'serial', { get: () => undefined });
+  });
+  const d = registry.devices[0];
+  await page.goto(`/#/${d.id}`);
+  await expect(page.locator('.fallback')).toBeVisible();
+  await expect(page.locator('esp-web-install-button')).toHaveCount(0);
+});
