@@ -56,7 +56,7 @@ Channels and variants are optional per device — devices with a single manifest
 - Hero: "Flash your Apollo device from the browser" + short how-it-works line + browser-support note (Chrome/Edge).
 - Category filter pills (mmWave presence, Air quality, Temperature, Plant, …).
 - Device card grid rendered from the registry: image, name, one-line description, Install →.
-- **Placeholder art at launch** (styled gradient tiles); real product photos land later by dropping files into `/images/` — no code changes.
+- **Real product photos from launch**, sourced from the store: `apolloautomation.com/products.json` exposes every product's Shopify CDN image URLs (verified 2026-07-08). Images are downloaded once into `/images/` and committed — never hotlinked (CDN URLs churn and hotlinking is fragile). Use the CDN's `?width=` resize parameter to fetch consistent sizes. Each registry entry records its `imageSource` URL for provenance/refresh. Exception: MSR-1 is no longer in the store — pull its image from the wiki or product repo. Photos can be swapped for nicer ones later as a pure asset change.
 - Header links: Wiki, Shop, Discord.
 
 ## Device page — the mini-wizard
@@ -109,7 +109,7 @@ Note: `Apollo Illustration_Magnet.jpg` was provided alongside these but is Open 
 
 ## v1 device registry
 
-Released products only — confirm the final list against live `apolloautomation.github.io/<repo>/` pages during implementation. Expected: MSR-1, MSR-2, MTR-1, AIR-1, TEMP-1, PLT-1, R_PRO-1. Explicitly excluded: TEMP_PRO-1 and RLY-1 (unreleased).
+Released products only — confirm the final list against live `apolloautomation.github.io/<repo>/` pages during implementation. Core expected: MSR-1, MSR-2, MTR-1, AIR-1, TEMP-1, PLT-1, R_PRO-1. Store inventory (2026-07-08) suggests additional flashable candidates to evaluate: CAST-1, PUMP-1, LED-1, M-1, PA-1, BTN-1, DEV-1/DEV-2 — include any with a live installer manifest. Explicitly excluded: TEMP_PRO-1 and RLY-1 (unreleased).
 
 ## Decisions log
 
