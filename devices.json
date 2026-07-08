@@ -1,0 +1,150 @@
+{
+  "devices": [
+    {
+      "id": "msr-1",
+      "name": "MSR-1",
+      "category": "mmWave presence",
+      "description": "mmWave presence multisensor",
+      "image": "images/msr-1.png",
+      "imageSource": "https://wiki.apolloautomation.com/assets/productimage.jpg",
+      "wiki": "https://wiki.apolloautomation.com/products/msr1/introduction/",
+      "repo": "ApolloAutomation/MSR-1",
+      "githubPagesInstaller": "https://apolloautomation.github.io/MSR-1/",
+      "firmware": {
+        "stable": { "Standard": "https://apolloautomation.github.io/MSR-1/firmware/manifest.json" }
+      }
+    },
+    {
+      "id": "msr-2",
+      "name": "MSR-2",
+      "category": "mmWave presence",
+      "description": "mmWave multisensor (LD2410B)",
+      "image": "images/msr-2.png",
+      "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/2025_MSR-2_W_E_and_H.png?v=1763054411",
+      "wiki": "https://wiki.apolloautomation.com/products/msr2/introduction/",
+      "repo": "ApolloAutomation/MSR-2",
+      "githubPagesInstaller": "https://apolloautomation.github.io/MSR-2/",
+      "firmware": {
+        "stable": { "Standard": "https://apolloautomation.github.io/MSR-2/firmware/manifest.json" }
+      }
+    },
+    {
+      "id": "mtr-1",
+      "name": "MTR-1",
+      "category": "mmWave presence",
+      "description": "Multi-target radar multisensor (LD2450)",
+      "image": "images/mtr-1.png",
+      "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/2025_MTR-1_W_E_adn_H.png?v=1763054477",
+      "wiki": "https://wiki.apolloautomation.com/products/mtr1/introduction/",
+      "repo": "ApolloAutomation/MTR-1",
+      "githubPagesInstaller": "https://apolloautomation.github.io/MTR-1/",
+      "firmware": {
+        "stable": { "Standard": "https://apolloautomation.github.io/MTR-1/firmware/manifest.json" }
+      }
+    },
+    {
+      "id": "r_pro-1",
+      "name": "R PRO-1",
+      "category": "mmWave presence",
+      "description": "PoE dual mmWave multisensor (LD2450, optional LD2412)",
+      "image": "images/r_pro-1.png",
+      "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/R_PRO-1_WWHA_EH_and_H.png?v=1771963575",
+      "wiki": "https://wiki.apolloautomation.com/products/rpro1/introduction/",
+      "repo": "ApolloAutomation/R_PRO-1",
+      "githubPagesInstaller": "https://apolloautomation.github.io/R_PRO-1/",
+      "firmware": {
+        "stable": {
+          "WiFi": "https://apolloautomation.github.io/R_PRO-1/firmware-w/manifest.json",
+          "Ethernet": "https://apolloautomation.github.io/R_PRO-1/firmware-e/manifest.json"
+        }
+      }
+    },
+    {
+      "id": "air-1",
+      "name": "AIR-1",
+      "category": "Air quality",
+      "description": "Air quality sensor",
+      "image": "images/air-1.png",
+      "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/2025_AIR-1_W_E_and_H_12ee80a0-1778-4f86-8db3-e0033a328b44.png?v=1763054155",
+      "wiki": "https://wiki.apolloautomation.com/products/air1/introduction/",
+      "repo": "ApolloAutomation/AIR-1",
+      "githubPagesInstaller": "https://apolloautomation.github.io/AIR-1/",
+      "firmware": {
+        "stable": { "Standard": "https://apolloautomation.github.io/AIR-1/firmware/manifest.json" }
+      }
+    },
+    {
+      "id": "temp-1",
+      "name": "TEMP-1",
+      "category": "Temperature",
+      "description": "Temperature sensor",
+      "image": "images/temp-1.png",
+      "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/TEMP-1B_WWHA_EH_and_H.png?v=1771963269",
+      "wiki": "https://wiki.apolloautomation.com/products/temp1/introduction/",
+      "repo": "ApolloAutomation/TEMP-1",
+      "githubPagesInstaller": "https://apolloautomation.github.io/TEMP-1/",
+      "firmware": {
+        "stable": { "Standard": "https://apolloautomation.github.io/TEMP-1/firmware/manifest.json" }
+      }
+    },
+    {
+      "id": "plt-1",
+      "name": "PLT-1",
+      "category": "Plant",
+      "description": "Plant sensor",
+      "image": "images/plt-1.png",
+      "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/PLT-1_WWHA_EH_and_H.png?v=1771963184",
+      "wiki": "https://wiki.apolloautomation.com/products/plt1/introduction/",
+      "repo": "ApolloAutomation/PLT-1",
+      "githubPagesInstaller": "https://apolloautomation.github.io/PLT-1/",
+      "firmware": {
+        "stable": { "Standard": "https://apolloautomation.github.io/PLT-1/firmware/manifest.json" }
+      }
+    },
+    {
+      "id": "cast-1",
+      "name": "CAST-1",
+      "category": "Audio",
+      "description": "Audio casting device",
+      "image": "images/cast-1.png",
+      "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/20260611_100839.jpg?v=1781188174",
+      "wiki": "https://wiki.apolloautomation.com",
+      "repo": "ApolloAutomation/CAST-1",
+      "githubPagesInstaller": "https://apolloautomation.github.io/CAST-1/",
+      "firmware": {
+        "stable": {
+          "WiFi": "https://apolloautomation.github.io/CAST-1/firmware-w/manifest.json",
+          "Ethernet": "https://apolloautomation.github.io/CAST-1/firmware-e/manifest.json"
+        }
+      }
+    },
+    {
+      "id": "pump-1",
+      "name": "PUMP-1",
+      "category": "Pump",
+      "description": "Fluid pump",
+      "image": "images/pump-1.png",
+      "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/PUMP-1_WWHA_EH_and_H.jpg?v=1771963336",
+      "wiki": "https://wiki.apolloautomation.com/products/pump1/introduction/",
+      "repo": "ApolloAutomation/PUMP-1",
+      "githubPagesInstaller": "https://apolloautomation.github.io/PUMP-1/",
+      "firmware": {
+        "stable": { "Standard": "https://apolloautomation.github.io/PUMP-1/firmware/manifest.json" }
+      }
+    },
+    {
+      "id": "btn-1",
+      "name": "BTN-1",
+      "category": "Button",
+      "description": "Macro deck smart button",
+      "image": "images/btn-1.png",
+      "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/BTN-1_WWHA_EH_and_H.jpg?v=1771962476",
+      "wiki": "https://wiki.apolloautomation.com/products/btn1/introduction/",
+      "repo": "ApolloAutomation/BTN-1",
+      "githubPagesInstaller": "https://apolloautomation.github.io/BTN-1/",
+      "firmware": {
+        "stable": { "Standard": "https://apolloautomation.github.io/BTN-1/firmware/manifest.json" }
+      }
+    }
+  ]
+}
