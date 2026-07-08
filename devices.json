@@ -43,11 +43,11 @@
       }
     },
     {
-      "id": "r_pro-1",
-      "name": "R PRO-1",
+      "id": "r-pro-1",
+      "name": "R_PRO-1",
       "category": "mmWave presence",
       "description": "PoE dual mmWave multisensor (LD2450, optional LD2412)",
-      "image": "images/r_pro-1.png",
+      "image": "images/r-pro-1.png",
       "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/R_PRO-1_WWHA_EH_and_H.png?v=1771963575",
       "wiki": "https://wiki.apolloautomation.com/products/rpro1/introduction/",
       "repo": "ApolloAutomation/R_PRO-1",
@@ -108,7 +108,7 @@
       "description": "Audio casting device",
       "image": "images/cast-1.png",
       "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/20260611_100839.jpg?v=1781188174",
-      "wiki": "https://wiki.apolloautomation.com",
+      "wiki": "https://wiki.apolloautomation.com/",
       "repo": "ApolloAutomation/CAST-1",
       "githubPagesInstaller": "https://apolloautomation.github.io/CAST-1/",
       "firmware": {
