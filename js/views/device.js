@@ -1,4 +1,10 @@
 import '../../vendor/esp-web-tools/install-button.js';
+import { fetchReleaseNotes } from '../release-notes.js';
+
+// Release data comes from the GitHub API (external input) — escape everything
+// interpolated into markup. Registry fields are trusted repo content.
+const esc = (s) => String(s).replace(/[&<>"']/g,
+  (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function selectedManifest(device, channel, variant) {
   return device.firmware[channel][variant];
@@ -43,6 +49,7 @@ export function renderDevice(el, device) {
           ${segHtml('channel-seg', 'Channel', channels, channel, 'channel')}
           <div id="variant-slot"></div>
         </div>
+        <div id="release-slot"></div>
         ${channels.length < 2 && Object.keys(device.firmware[channel]).length < 2
           ? '<p style="color:var(--dim);margin:0;">One firmware for this device — nothing to choose here.</p>' : ''}
       </section>
@@ -54,7 +61,11 @@ export function renderDevice(el, device) {
 
       <section class="step" id="step-done">
         <h2><span class="num">3</span> Add to Home Assistant</h2>
-        <p style="color:var(--dim)">Coming in the next task.</p>
+        <p>After installing, the device broadcasts itself on your network.
+           In Home Assistant go to <strong>Settings → Devices &amp; services</strong> — it appears as a
+           discovered <strong>ESPHome</strong> device. Click <strong>Configure</strong>, and you're done.
+           <span class="done-check">✓</span></p>
+        <p><a href="${device.wiki}">Full ${device.name} setup guide on the wiki →</a></p>
       </section>
     </div>`;
 
@@ -112,6 +123,32 @@ export function renderDevice(el, device) {
     }
   }
 
+  async function renderReleaseNotes() {
+    const slot = el.querySelector('#release-slot');
+    slot.innerHTML = '';
+    const want = channel; // discard the response if the channel changed by resolution time
+    try {
+      const rel = await fetchReleaseNotes(device.repo, channel);
+      if (channel !== want) return; // stale fetch — channel changed
+      const url = /^https:\/\/github\.com\//.test(rel.url) ? rel.url : `https://github.com/${device.repo}/releases`;
+      slot.innerHTML = `
+        <div class="release-notes">
+          <details>
+            <summary>What's new in ${esc(rel.name)}</summary>
+            <pre>${esc(rel.body)}</pre>
+            <a href="${esc(url)}">Full release →</a>
+          </details>
+        </div>`;
+    } catch {
+      if (channel !== want) return; // stale fetch — channel changed
+      slot.innerHTML = `
+        <div class="release-notes">
+          See <a class="fail-link" href="https://github.com/${device.repo}/releases">recent releases</a>
+          for what's new.
+        </div>`;
+    }
+  }
+
   const chanSeg = el.querySelector('#channel-seg');
   if (chanSeg) chanSeg.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-channel]');
@@ -121,8 +158,10 @@ export function renderDevice(el, device) {
     chanSeg.querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b));
     renderVariantSeg();
     renderInstall();
+    renderReleaseNotes();
   });
 
   renderVariantSeg();
   renderInstall();
+  renderReleaseNotes();
 }

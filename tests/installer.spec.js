@@ -78,3 +78,26 @@ test('late manifest fetch for a deselected variant does not overwrite the fallba
   await expect(page.locator('#fallback-files a[href$="eth.bin"]')).toHaveCount(1);
   await expect(page.locator('#fallback-files a[href$="wifi.bin"]')).toHaveCount(0);
 });
+
+test('release notes render from the GitHub API', async ({ page }) => {
+  const d = registry.devices[0];
+  await page.route('https://api.github.com/**', (route) =>
+    route.fulfill({ json: { name: 'v99.9.9.9', body: '- test note line', html_url: 'https://example.com/rel' } }));
+  await page.goto(`/#/${d.id}`);
+  await expect(page.locator('.release-notes summary')).toContainText('v99.9.9.9');
+});
+
+test('release notes degrade to a releases link on API failure', async ({ page }) => {
+  const d = registry.devices[0];
+  await page.route('https://api.github.com/**', (route) => route.fulfill({ status: 403 }));
+  await page.goto(`/#/${d.id}`);
+  await expect(page.locator('.release-notes .fail-link')).toHaveAttribute(
+    'href', `https://github.com/${d.repo}/releases`);
+});
+
+test('step 3 shows the Home Assistant hand-off', async ({ page }) => {
+  const d = registry.devices[0];
+  await page.goto(`/#/${d.id}`);
+  await expect(page.locator('#step-done')).toContainText('Home Assistant');
+  await expect(page.locator(`#step-done a[href="${d.wiki}"]`)).toBeVisible();
+});
