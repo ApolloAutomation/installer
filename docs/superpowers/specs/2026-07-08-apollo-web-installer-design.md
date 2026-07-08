@@ -67,7 +67,23 @@ Three steps on one page:
 2. **Connect & install.** The ESP Web Tools button wired to the selected manifest. If the browser lacks WebSerial (Firefox/Safari), this step renders the **manual fallback** instead of a dead button: direct `.bin` download link (from the manifest) + instructions pointing at ESPHome Web / esptool.
 3. **Done — add to Home Assistant.** ESPHome-discovery hand-off ("Home Assistant will find it — here's what that looks like") + link to the device's wiki setup guide.
 
-Also on the page: link back to all devices, link to the device's GitHub repo, release-notes link.
+Also on the page: link back to all devices, link to the device's GitHub repo, and **inline release notes** — the latest release body for the selected channel fetched from the GitHub Releases API at page load (release-drafter bodies are good), collapsed/expandable, with a link to the full release. On API failure or rate limit, degrade to a plain link to the repo's releases page.
+
+## Branding
+
+Official Apollo assets live in `assets/brand/` (added 2026-07-08 from Brandon's files):
+
+- `apollo-stacked.png` — full stacked wordmark (hub hero)
+- `a-mark.png` — the A-mark (header logo, small contexts)
+- `apollo-circle.png` — circular badge (favicon source; generate sizes from it)
+
+Brand palette (sampled from the A-mark):
+
+- Apollo blue `#417AAB` — primary accent, buttons, active states
+- Apollo green `#9ABD32` — the "dot": success/done states, connected indicators, small highlights
+- Neutrals chosen to support these (light ground with blue-biased greys, or dark ground — decide in implementation against the real logo assets)
+
+Note: `Apollo Illustration_Magnet.jpg` was provided alongside these but is Open Home Foundation artwork, not Apollo branding — not used.
 
 ## Error handling
 
@@ -85,10 +101,9 @@ Also on the page: link back to all devices, link to the device's GitHub repo, re
 
 ## Rollout / PR plan
 
-- **PR 1 — core installer:** registry, hub grid, device mini-wizard, vendored ESP Web Tools, manual fallback, CI registry validation, Playwright suite.
+- **PR 1 — core installer:** registry, hub grid, device mini-wizard, vendored ESP Web Tools, manual fallback, inline release notes, Apollo branding, CI registry validation, Playwright suite.
 - **Follow-up PRs (one each, ewt-gen-inspired):**
   - YAML view/download per channel/variant (linking configs already in product repos).
-  - Inline release notes via the GitHub Releases API (release-drafter bodies are good).
   - "Take control in ESPHome Dashboard" adoption section.
 - **Launch steps:** deploy to Pages → Discord/community testing → point `install.apolloautomation.com` DNS → promote from wiki and Discord.
 
