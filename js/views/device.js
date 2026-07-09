@@ -65,6 +65,13 @@ export function renderDevice(el, device) {
            In Home Assistant go to <strong>Settings → Devices &amp; services</strong> — it appears as a
            discovered <strong>ESPHome</strong> device. Click <strong>Configure</strong>, and you're done.
            <span class="done-check">✓</span></p>
+        <details class="customize">
+          <summary>Want to customize the firmware?</summary>
+          <p>Apollo firmware ships with <code>dashboard_import</code>, so the device also shows up in the
+             <strong>ESPHome Dashboard</strong> (or the ESPHome add-on in Home Assistant) under
+             <strong>Discovered</strong>. Click <strong>Take control</strong> to pull its configuration
+             into the dashboard, then edit it and flash updates over Wi-Fi.</p>
+        </details>
         <p><a href="${device.wiki}">Full ${device.name} setup guide on the wiki →</a></p>
       </section>
     </div>`;
