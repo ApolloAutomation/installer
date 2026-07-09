@@ -111,3 +111,15 @@ esp-web-install-button button, .install-btn {
 .customize p { margin: 8px 0 0; color: var(--dim); }
 .customize code { background: var(--bg-blue-tint); padding: 1px 5px; border-radius: 4px; }
 .error-box { border-left: 3px solid var(--border-error); background: var(--bg-error); border-radius: 0 8px 8px 0; padding: 12px 16px; }
+
+/* Firmware config view/download */
+.config { border-left: 3px solid var(--blue); background: var(--bg-blue-tint); border-radius: 0 8px 8px 0; padding: 12px 16px; margin-top: 14px; }
+.config > summary { cursor: pointer; font-weight: 700; }
+.config-hint { margin: 10px 0 8px; color: var(--dim); font-size: .85rem; }
+.config-hint code { background: var(--panel); border: 1px solid var(--line); padding: 1px 5px; border-radius: 4px; }
+.config-yaml { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow: auto; max-height: 340px; }
+.config-yaml code { font-family: ui-monospace, Consolas, monospace; font-size: .8rem; line-height: 1.5; white-space: pre; color: var(--ink); }
+.config-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.config-download { background: var(--blue); color: #fff; border: 0; border-radius: 8px; padding: 9px 18px; font-size: .9rem; font-weight: 700; cursor: pointer; }
+.config-download:disabled { opacity: .55; cursor: default; }
+.config-github { font-size: .86rem; font-weight: 600; }

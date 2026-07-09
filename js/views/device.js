@@ -6,6 +6,22 @@ import { fetchReleaseNotes } from '../release-notes.js';
 const esc = (s) => String(s).replace(/[&<>"']/g,
   (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+function rawToBlob(raw) {
+  const m = raw.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/);
+  return m ? `https://github.com/${m[1]}/${m[2]}/blob/${m[3]}/${m[4]}` : raw;
+}
+function configBasename(url) {
+  return (url.split('/').pop() || 'config.yaml').replace(/[^\w.\-]/g, '_');
+}
+function downloadText(text, filename) {
+  const blob = new Blob([text], { type: 'text/yaml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function selectedManifest(device, channel, variant) {
   return device.firmware[channel][variant];
 }
@@ -25,6 +41,7 @@ export function renderDevice(el, device) {
   const channels = Object.keys(device.firmware);
   let channel = channels.includes('stable') ? 'stable' : channels[0];
   let variant = Object.keys(device.firmware[channel])[0];
+  let epoch = 0; // bumps on every channel/variant change; async renders bail if it moved
   const hasSerial = !!navigator.serial;
 
   el.innerHTML = `
@@ -50,6 +67,7 @@ export function renderDevice(el, device) {
           <div id="variant-slot"></div>
         </div>
         <div id="release-slot"></div>
+        <div id="config-slot"></div>
         ${channels.length < 2 && Object.keys(device.firmware[channel]).length < 2
           ? '<p style="color:var(--dim);margin:0;">One firmware for this device — nothing to choose here.</p>' : ''}
       </section>
@@ -86,16 +104,19 @@ export function renderDevice(el, device) {
       const b = e.target.closest('button[data-variant]');
       if (!b) return;
       variant = b.dataset.variant;
+      epoch++;
       seg.querySelectorAll('button').forEach((x) => {
         const on = x === b;
         x.classList.toggle('active', on);
         x.setAttribute('aria-pressed', String(on));
       });
       renderInstall();
+      renderConfig();
     });
   }
 
   async function renderInstall() {
+    const myEpoch = epoch;
     const manifest = selectedManifest(device, channel, variant);
     if (hasSerial) {
       installSlot.innerHTML = `
@@ -116,7 +137,6 @@ export function renderDevice(el, device) {
             <li>Or use the <a href="${device.githubPagesInstaller}">classic installer page</a> in Chrome/Edge.</li>
           </ul>
         </div>`;
-      const want = manifest;
       // Pin the list element before the fetch: if the user navigates to another
       // device mid-fetch, the stale write lands on this detached node harmlessly
       // instead of the new device's freshly rendered #fallback-files.
@@ -125,12 +145,12 @@ export function renderDevice(el, device) {
         const res = await fetch(manifest);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const m = await res.json();
-        if (selectedManifest(device, channel, variant) !== want) return; // stale fetch — selection changed
+        if (epoch !== myEpoch) return; // selection changed mid-fetch
         const files = m.builds.flatMap((b) => b.parts.map((p) => new URL(p.path, manifest).href));
         filesEl.innerHTML =
           files.map((f) => `<li><a href="${encodeURI(f)}">${f.split('/').pop().replace(/[<>&"']/g, '')}</a></li>`).join('');
       } catch {
-        if (selectedManifest(device, channel, variant) !== want) return; // stale fetch — selection changed
+        if (epoch !== myEpoch) return; // selection changed mid-fetch
         filesEl.innerHTML =
           `<li>Couldn't load the file list — download firmware from the
              <a href="https://github.com/${device.repo}/releases">latest release</a>.</li>`;
@@ -141,10 +161,10 @@ export function renderDevice(el, device) {
   async function renderReleaseNotes() {
     const slot = el.querySelector('#release-slot');
     slot.innerHTML = '';
-    const want = channel; // discard the response if the channel changed by resolution time
+    const myEpoch = epoch;
     try {
       const rel = await fetchReleaseNotes(device.repo, channel);
-      if (channel !== want) return; // stale fetch — channel changed
+      if (epoch !== myEpoch) return; // selection changed mid-fetch
       const url = /^https:\/\/github\.com\//.test(rel.url) ? rel.url : `https://github.com/${device.repo}/releases`;
       slot.innerHTML = `
         <div class="release-notes">
@@ -155,12 +175,46 @@ export function renderDevice(el, device) {
           </details>
         </div>`;
     } catch {
-      if (channel !== want) return; // stale fetch — channel changed
+      if (epoch !== myEpoch) return; // selection changed mid-fetch
       slot.innerHTML = `
         <div class="release-notes">
           See <a class="fail-link" href="https://github.com/${device.repo}/releases">recent releases</a>
           for what's new.
         </div>`;
+    }
+  }
+
+  async function renderConfig() {
+    const slot = el.querySelector('#config-slot');
+    const url = device.config && device.config[channel] && device.config[channel][variant];
+    if (!url) { slot.innerHTML = ''; return; }
+    const filename = configBasename(url);
+    slot.innerHTML = `
+      <details class="config">
+        <summary>Build or reflash this firmware yourself</summary>
+        <p class="config-hint">The ESPHome config for the <strong>${variant}</strong> variant
+          (<code>${filename}</code>). Rebuilding from this keeps the device's onboarding, so the
+          <a href="${device.wiki}">${device.name} wiki</a> setup steps still apply.</p>
+        <pre class="config-yaml"><code>Loading config…</code></pre>
+        <div class="config-actions">
+          <button class="config-download" disabled>Download .yaml</button>
+          <a class="config-github" href="${rawToBlob(url)}" target="_blank" rel="noopener">View on GitHub →</a>
+        </div>
+      </details>`;
+    const codeEl = slot.querySelector('.config-yaml code');
+    const dlBtn = slot.querySelector('.config-download');
+    const myEpoch = epoch;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      if (epoch !== myEpoch) return; // selection changed mid-fetch
+      codeEl.textContent = text; // textContent escapes the runtime-fetched YAML
+      dlBtn.disabled = false;
+      dlBtn.addEventListener('click', () => downloadText(text, filename));
+    } catch {
+      if (epoch !== myEpoch) return;
+      codeEl.textContent = 'Could not load the config here — use "View on GitHub".';
     }
   }
 
@@ -170,6 +224,7 @@ export function renderDevice(el, device) {
     if (!b) return;
     channel = b.dataset.channel;
     variant = Object.keys(device.firmware[channel])[0];
+    epoch++;
     chanSeg.querySelectorAll('button').forEach((x) => {
       const on = x === b;
       x.classList.toggle('active', on);
@@ -178,9 +233,11 @@ export function renderDevice(el, device) {
     renderVariantSeg();
     renderInstall();
     renderReleaseNotes();
+    renderConfig();
   });
 
   renderVariantSeg();
   renderInstall();
   renderReleaseNotes();
+  renderConfig();
 }
