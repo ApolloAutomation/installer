@@ -8,8 +8,8 @@ export function renderHub(el, registry) {
          Installing needs Chrome or Edge — on other browsers you'll get manual instructions.</p>
     </section>
     <div class="filters">
-      <button data-cat="all" class="active">All devices</button>
-      ${cats.map((c) => `<button data-cat="${c}">${c}</button>`).join('')}
+      <button data-cat="all" class="active" aria-pressed="true">All devices</button>
+      ${cats.map((c) => `<button data-cat="${c}" aria-pressed="false">${c}</button>`).join('')}
     </div>
     <div class="device-grid">
       ${registry.devices.map((d) => `
@@ -24,7 +24,11 @@ export function renderHub(el, registry) {
   el.querySelector('.filters').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-cat]');
     if (!btn) return;
-    el.querySelectorAll('.filters button').forEach((b) => b.classList.toggle('active', b === btn));
+    el.querySelectorAll('.filters button').forEach((b) => {
+      const on = b === btn;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
     el.querySelectorAll('.device-card').forEach((card) => {
       card.style.display =
         btn.dataset.cat === 'all' || card.dataset.cat === btn.dataset.cat ? '' : 'none';
