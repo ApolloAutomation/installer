@@ -154,3 +154,12 @@ test('step 3 shows the Home Assistant hand-off', async ({ page }) => {
   await expect(page.locator('#step-done')).toContainText('Home Assistant');
   await expect(page.locator(`#step-done a[href="${d.wiki}"]`)).toBeVisible();
 });
+
+test('step 3 explains taking control in the ESPHome Dashboard', async ({ page }) => {
+  const d = registry.devices[0];
+  await page.goto(`/#/${d.id}`);
+  const done = page.locator('#step-done');
+  await expect(done).toContainText('ESPHome Dashboard');
+  await expect(done).toContainText('Take control');
+  await expect(done.locator('code')).toContainText('dashboard_import');
+});

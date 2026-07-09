@@ -98,4 +98,8 @@ esp-web-install-button button, .install-btn {
 .release-notes summary { cursor: pointer; font-weight: 600; }
 .release-notes pre { white-space: pre-wrap; font-family: inherit; margin: 8px 0; }
 .done-check { color: var(--green); font-weight: 700; }
+.customize { margin: 4px 0 14px; font-size: .9rem; }
+.customize summary { cursor: pointer; color: var(--blue); font-weight: 600; }
+.customize p { margin: 8px 0 0; color: var(--dim); }
+.customize code { background: var(--bg-blue-tint); padding: 1px 5px; border-radius: 4px; }
 .error-box { border-left: 3px solid var(--border-error); background: var(--bg-error); border-radius: 0 8px 8px 0; padding: 12px 16px; }
