@@ -16,7 +16,7 @@ function segHtml(id, label, keys, active, dataAttr) {
     <div class="group">
       <label>${label}</label>
       <span class="seg" id="${id}">
-        ${keys.map((k) => `<button data-${dataAttr}="${k}" class="${k === active ? 'active' : ''}">${k}</button>`).join('')}
+        ${keys.map((k) => `<button data-${dataAttr}="${k}" class="${k === active ? 'active' : ''}" aria-pressed="${k === active}">${k}</button>`).join('')}
       </span>
     </div>`;
 }
@@ -79,7 +79,11 @@ export function renderDevice(el, device) {
       const b = e.target.closest('button[data-variant]');
       if (!b) return;
       variant = b.dataset.variant;
-      seg.querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b));
+      seg.querySelectorAll('button').forEach((x) => {
+        const on = x === b;
+        x.classList.toggle('active', on);
+        x.setAttribute('aria-pressed', String(on));
+      });
       renderInstall();
     });
   }
@@ -159,7 +163,11 @@ export function renderDevice(el, device) {
     if (!b) return;
     channel = b.dataset.channel;
     variant = Object.keys(device.firmware[channel])[0];
-    chanSeg.querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b));
+    chanSeg.querySelectorAll('button').forEach((x) => {
+      const on = x === b;
+      x.classList.toggle('active', on);
+      x.setAttribute('aria-pressed', String(on));
+    });
     renderVariantSeg();
     renderInstall();
     renderReleaseNotes();

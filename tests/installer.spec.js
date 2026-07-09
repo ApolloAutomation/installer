@@ -32,6 +32,34 @@ test('category filter shows exactly the cards in that category', async ({ page }
   await expect(page.locator('a.device-card:visible')).toHaveCount(registry.devices.length);
 });
 
+test('filter pills expose aria-pressed reflecting the active filter', async ({ page }) => {
+  await page.goto('/');
+  const all = page.locator('.filters button[data-cat="all"]');
+  const cat = registry.devices[0].category;
+  const pill = page.locator(`.filters button[data-cat="${cat}"]`);
+  await expect(all).toHaveAttribute('aria-pressed', 'true');
+  await expect(pill).toHaveAttribute('aria-pressed', 'false');
+  await pill.click();
+  await expect(pill).toHaveAttribute('aria-pressed', 'true');
+  await expect(all).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('channel/variant toggles expose aria-pressed reflecting the selection', async ({ page }) => {
+  const d = registry.devices.find((x) => x.firmware.beta || Object.keys(x.firmware.stable).length > 1);
+  test.skip(!d, 'no multi-channel/variant device in registry');
+  await page.goto(`/#/${d.id}`);
+  const seg = d.firmware.beta ? 'channel-seg' : 'variant-seg';
+  const attr = d.firmware.beta ? 'data-channel' : 'data-variant';
+  const keys = d.firmware.beta ? ['stable', 'beta'] : Object.keys(d.firmware.stable);
+  const firstBtn = page.locator(`#${seg} button[${attr}="${keys[0]}"]`);
+  const secondBtn = page.locator(`#${seg} button[${attr}="${keys[1]}"]`);
+  await expect(firstBtn).toHaveAttribute('aria-pressed', 'true');
+  await expect(secondBtn).toHaveAttribute('aria-pressed', 'false');
+  await secondBtn.click();
+  await expect(secondBtn).toHaveAttribute('aria-pressed', 'true');
+  await expect(firstBtn).toHaveAttribute('aria-pressed', 'false');
+});
+
 test('deep link renders the device wizard', async ({ page }) => {
   const d = registry.devices[0];
   await page.goto(`/#/${d.id}`);
