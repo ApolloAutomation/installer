@@ -16,6 +16,8 @@ jobs:
           python-version: "3.12"
       - name: Validator unit tests (offline)
         run: python scripts/test_validate_registry.py
+      - name: Image script unit tests (offline)
+        run: python scripts/test_fetch_images.py
       - run: python scripts/validate_registry.py
 
   ui-tests:
