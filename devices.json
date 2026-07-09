@@ -14,6 +14,11 @@
         "stable": {
           "Standard": "https://apolloautomation.github.io/MSR-1/firmware/manifest.json"
         }
+      },
+      "config": {
+        "stable": {
+          "Standard": "https://raw.githubusercontent.com/ApolloAutomation/MSR-1/main/Integrations/ESPHome/MSR-1_Factory.yaml"
+        }
       }
     },
     {
@@ -30,6 +35,11 @@
         "stable": {
           "Standard": "https://apolloautomation.github.io/MSR-2/firmware/manifest.json"
         }
+      },
+      "config": {
+        "stable": {
+          "Standard": "https://raw.githubusercontent.com/ApolloAutomation/MSR-2/main/Integrations/ESPHome/MSR-2_Factory.yaml"
+        }
       }
     },
     {
@@ -45,6 +55,11 @@
       "firmware": {
         "stable": {
           "Standard": "https://apolloautomation.github.io/MTR-1/firmware/manifest.json"
+        }
+      },
+      "config": {
+        "stable": {
+          "Standard": "https://raw.githubusercontent.com/ApolloAutomation/MTR-1/main/Integrations/ESPHome/MTR-1_Factory.yaml"
         }
       }
     },
@@ -63,6 +78,12 @@
           "WiFi": "https://apolloautomation.github.io/R_PRO-1/firmware-w/manifest.json",
           "Ethernet": "https://apolloautomation.github.io/R_PRO-1/firmware-e/manifest.json"
         }
+      },
+      "config": {
+        "stable": {
+          "WiFi": "https://raw.githubusercontent.com/ApolloAutomation/R_PRO-1/main/Integrations/ESPHome/R_PRO-1_W.yaml",
+          "Ethernet": "https://raw.githubusercontent.com/ApolloAutomation/R_PRO-1/main/Integrations/ESPHome/R_PRO-1_ETH.yaml"
+        }
       }
     },
     {
@@ -78,6 +99,11 @@
       "firmware": {
         "stable": {
           "Standard": "https://apolloautomation.github.io/AIR-1/firmware/manifest.json"
+        }
+      },
+      "config": {
+        "stable": {
+          "Standard": "https://raw.githubusercontent.com/ApolloAutomation/AIR-1/main/Integrations/ESPHome/AIR-1_Factory.yaml"
         }
       }
     },
@@ -95,6 +121,11 @@
         "stable": {
           "Standard": "https://apolloautomation.github.io/TEMP-1/firmware/manifest.json"
         }
+      },
+      "config": {
+        "stable": {
+          "Standard": "https://raw.githubusercontent.com/ApolloAutomation/TEMP-1/main/Integrations/ESPHome/TEMP-1_R2.yaml"
+        }
       }
     },
     {
@@ -110,6 +141,11 @@
       "firmware": {
         "stable": {
           "Standard": "https://apolloautomation.github.io/PLT-1/firmware/manifest.json"
+        }
+      },
+      "config": {
+        "stable": {
+          "Standard": "https://raw.githubusercontent.com/ApolloAutomation/PLT-1/main/Integrations/ESPHome/PLT-1.yaml"
         }
       }
     },
@@ -128,6 +164,12 @@
           "WiFi": "https://apolloautomation.github.io/CAST-1/firmware-w/manifest.json",
           "Ethernet": "https://apolloautomation.github.io/CAST-1/firmware-e/manifest.json"
         }
+      },
+      "config": {
+        "stable": {
+          "WiFi": "https://raw.githubusercontent.com/ApolloAutomation/CAST-1/main/Integrations/ESPHome/CAST-1_W.yaml",
+          "Ethernet": "https://raw.githubusercontent.com/ApolloAutomation/CAST-1/main/Integrations/ESPHome/CAST-1_ETH.yaml"
+        }
       }
     },
     {
@@ -144,6 +186,11 @@
         "stable": {
           "Standard": "https://apolloautomation.github.io/PUMP-1/firmware/manifest.json"
         }
+      },
+      "config": {
+        "stable": {
+          "Standard": "https://raw.githubusercontent.com/ApolloAutomation/PUMP-1/main/Integrations/ESPHome/PUMP-1.yaml"
+        }
       }
     },
     {
@@ -159,6 +206,11 @@
       "firmware": {
         "stable": {
           "Standard": "https://apolloautomation.github.io/BTN-1/firmware/manifest.json"
+        }
+      },
+      "config": {
+        "stable": {
+          "Standard": "https://raw.githubusercontent.com/ApolloAutomation/BTN-1/main/Integrations/ESPHome/BTN-1.yaml"
         }
       }
     }
