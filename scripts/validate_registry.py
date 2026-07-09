@@ -55,6 +55,9 @@ def check_config_shape(config, dev_id):
     Returns a list of error strings (empty when sound). Network-free.
     """
     errs = []
+    if not isinstance(config, dict):
+        errs.append(f"{dev_id} config: not an object")
+        return errs
     for channel, variants in config.items():
         if not isinstance(variants, dict):
             errs.append(f"{dev_id} config {channel}: not an object")
@@ -94,6 +97,8 @@ def main():
                 check_manifest(dev["id"], channel, variant, murl)
         config = dev.get("config", {})
         errors.extend(check_config_shape(config, dev["id"]))
+        if not isinstance(config, dict):
+            continue
         for channel, variants in config.items():
             if not isinstance(variants, dict):
                 continue

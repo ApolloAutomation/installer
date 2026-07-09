@@ -86,6 +86,11 @@ class ConfigShape(unittest.TestCase):
         errs = vr.check_config_shape(cfg, "x")
         self.assertTrue(any("stable" in e for e in errs), errs)
 
+    def test_non_dict_config_errors_without_crashing(self):
+        for bad in (None, "oops", []):
+            errs = vr.check_config_shape(bad, "x")
+            self.assertTrue(any("config" in e for e in errs), (bad, errs))
+
 
 if __name__ == "__main__":
     unittest.main()
