@@ -25,6 +25,7 @@ export function renderDevice(el, device) {
   const channels = Object.keys(device.firmware);
   let channel = channels.includes('stable') ? 'stable' : channels[0];
   let variant = Object.keys(device.firmware[channel])[0];
+  let epoch = 0; // bumps on every channel/variant change; async renders bail if it moved
   const hasSerial = !!navigator.serial;
 
   el.innerHTML = `
@@ -86,6 +87,7 @@ export function renderDevice(el, device) {
       const b = e.target.closest('button[data-variant]');
       if (!b) return;
       variant = b.dataset.variant;
+      epoch++;
       seg.querySelectorAll('button').forEach((x) => {
         const on = x === b;
         x.classList.toggle('active', on);
@@ -96,6 +98,7 @@ export function renderDevice(el, device) {
   }
 
   async function renderInstall() {
+    const myEpoch = epoch;
     const manifest = selectedManifest(device, channel, variant);
     if (hasSerial) {
       installSlot.innerHTML = `
@@ -116,7 +119,6 @@ export function renderDevice(el, device) {
             <li>Or use the <a href="${device.githubPagesInstaller}">classic installer page</a> in Chrome/Edge.</li>
           </ul>
         </div>`;
-      const want = manifest;
       // Pin the list element before the fetch: if the user navigates to another
       // device mid-fetch, the stale write lands on this detached node harmlessly
       // instead of the new device's freshly rendered #fallback-files.
@@ -125,12 +127,12 @@ export function renderDevice(el, device) {
         const res = await fetch(manifest);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const m = await res.json();
-        if (selectedManifest(device, channel, variant) !== want) return; // stale fetch — selection changed
+        if (epoch !== myEpoch) return; // selection changed mid-fetch
         const files = m.builds.flatMap((b) => b.parts.map((p) => new URL(p.path, manifest).href));
         filesEl.innerHTML =
           files.map((f) => `<li><a href="${encodeURI(f)}">${f.split('/').pop().replace(/[<>&"']/g, '')}</a></li>`).join('');
       } catch {
-        if (selectedManifest(device, channel, variant) !== want) return; // stale fetch — selection changed
+        if (epoch !== myEpoch) return; // selection changed mid-fetch
         filesEl.innerHTML =
           `<li>Couldn't load the file list — download firmware from the
              <a href="https://github.com/${device.repo}/releases">latest release</a>.</li>`;
@@ -141,10 +143,10 @@ export function renderDevice(el, device) {
   async function renderReleaseNotes() {
     const slot = el.querySelector('#release-slot');
     slot.innerHTML = '';
-    const want = channel; // discard the response if the channel changed by resolution time
+    const myEpoch = epoch;
     try {
       const rel = await fetchReleaseNotes(device.repo, channel);
-      if (channel !== want) return; // stale fetch — channel changed
+      if (epoch !== myEpoch) return; // selection changed mid-fetch
       const url = /^https:\/\/github\.com\//.test(rel.url) ? rel.url : `https://github.com/${device.repo}/releases`;
       slot.innerHTML = `
         <div class="release-notes">
@@ -155,7 +157,7 @@ export function renderDevice(el, device) {
           </details>
         </div>`;
     } catch {
-      if (channel !== want) return; // stale fetch — channel changed
+      if (epoch !== myEpoch) return; // selection changed mid-fetch
       slot.innerHTML = `
         <div class="release-notes">
           See <a class="fail-link" href="https://github.com/${device.repo}/releases">recent releases</a>
@@ -170,6 +172,7 @@ export function renderDevice(el, device) {
     if (!b) return;
     channel = b.dataset.channel;
     variant = Object.keys(device.firmware[channel])[0];
+    epoch++;
     chanSeg.querySelectorAll('button').forEach((x) => {
       const on = x === b;
       x.classList.toggle('active', on);
