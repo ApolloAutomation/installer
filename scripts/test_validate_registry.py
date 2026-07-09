@@ -66,5 +66,26 @@ class HeadOk(unittest.TestCase):
             self.assertFalse(vr.head_ok("https://example.com/x.bin"))
 
 
+class ConfigShape(unittest.TestCase):
+    def test_good_config_has_no_errors(self):
+        cfg = {"stable": {"WiFi": "https://raw.githubusercontent.com/o/r/main/a.yaml"}}
+        self.assertEqual(vr.check_config_shape(cfg, "r-pro-1"), [])
+
+    def test_non_string_url_errors(self):
+        cfg = {"stable": {"WiFi": 123}}
+        errs = vr.check_config_shape(cfg, "r-pro-1")
+        self.assertTrue(any("WiFi" in e for e in errs), errs)
+
+    def test_non_https_url_errors(self):
+        cfg = {"stable": {"Standard": "http://insecure/a.yaml"}}
+        errs = vr.check_config_shape(cfg, "x")
+        self.assertTrue(any("https" in e for e in errs), errs)
+
+    def test_channel_not_object_errors(self):
+        cfg = {"stable": "oops"}
+        errs = vr.check_config_shape(cfg, "x")
+        self.assertTrue(any("stable" in e for e in errs), errs)
+
+
 if __name__ == "__main__":
     unittest.main()

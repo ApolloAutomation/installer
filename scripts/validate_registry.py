@@ -49,6 +49,21 @@ def check_manifest_shape(manifest, where):
                 errs.append(f"{where}: firmware part missing 'path'")
     return errs
 
+def check_config_shape(config, dev_id):
+    """Validate the optional `config` map (channel -> variant -> https URL).
+
+    Returns a list of error strings (empty when sound). Network-free.
+    """
+    errs = []
+    for channel, variants in config.items():
+        if not isinstance(variants, dict):
+            errs.append(f"{dev_id} config {channel}: not an object")
+            continue
+        for variant, url in variants.items():
+            if not isinstance(url, str) or not url.startswith("https://"):
+                errs.append(f"{dev_id} config {channel}/{variant}: not an https URL")
+    return errs
+
 def check_manifest(dev_id, channel, variant, murl):
     where = f"{dev_id} {channel}/{variant}"
     try:
@@ -77,6 +92,14 @@ def main():
         for channel, variants in dev.get("firmware", {}).items():
             for variant, murl in variants.items():
                 check_manifest(dev["id"], channel, variant, murl)
+        config = dev.get("config", {})
+        errors.extend(check_config_shape(config, dev["id"]))
+        for channel, variants in config.items():
+            if not isinstance(variants, dict):
+                continue
+            for variant, curl in variants.items():
+                if isinstance(curl, str) and not head_ok(curl):
+                    errors.append(f"{dev['id']} config {channel}/{variant}: unreachable: {curl}")
     if errors:
         print(f"FAILED — {len(errors)} problem(s):")
         for e in errors:
