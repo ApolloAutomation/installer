@@ -119,12 +119,14 @@
       "githubPagesInstaller": "https://apolloautomation.github.io/TEMP-1/",
       "firmware": {
         "stable": {
-          "Standard": "https://apolloautomation.github.io/TEMP-1/firmware/manifest.json"
+          "USB Power": "https://apolloautomation.github.io/TEMP-1/firmware2/manifest.json",
+          "Battery Power": "https://apolloautomation.github.io/TEMP-1/firmware-b2/manifest.json"
         }
       },
       "config": {
         "stable": {
-          "Standard": "https://raw.githubusercontent.com/ApolloAutomation/TEMP-1/main/Integrations/ESPHome/TEMP-1_R2.yaml"
+          "USB Power": "https://raw.githubusercontent.com/ApolloAutomation/TEMP-1/main/Integrations/ESPHome/TEMP-1_R2.yaml",
+          "Battery Power": "https://raw.githubusercontent.com/ApolloAutomation/TEMP-1/main/Integrations/ESPHome/TEMP-1B_R2.yaml"
         }
       }
     },
@@ -140,12 +142,14 @@
       "githubPagesInstaller": "https://apolloautomation.github.io/PLT-1/",
       "firmware": {
         "stable": {
-          "Standard": "https://apolloautomation.github.io/PLT-1/firmware/manifest.json"
+          "USB Power": "https://apolloautomation.github.io/PLT-1/firmware/manifest.json",
+          "Battery Power": "https://apolloautomation.github.io/PLT-1/firmware-b/manifest.json"
         }
       },
       "config": {
         "stable": {
-          "Standard": "https://raw.githubusercontent.com/ApolloAutomation/PLT-1/main/Integrations/ESPHome/PLT-1.yaml"
+          "USB Power": "https://raw.githubusercontent.com/ApolloAutomation/PLT-1/main/Integrations/ESPHome/PLT-1.yaml",
+          "Battery Power": "https://raw.githubusercontent.com/ApolloAutomation/PLT-1/main/Integrations/ESPHome/PLT-1B.yaml"
         }
       }
     },
