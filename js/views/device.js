@@ -14,7 +14,7 @@ function configBasename(url) {
   return (url.split('/').pop() || 'config.yaml').replace(/[^\w.\-]/g, '_');
 }
 function downloadText(text, filename) {
-  const blob = new Blob([text], { type: 'text/yaml' });
+  const blob = new Blob([text], { type: 'application/yaml' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename;

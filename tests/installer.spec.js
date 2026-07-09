@@ -194,7 +194,9 @@ test('step 3 explains taking control in the ESPHome Dashboard', async ({ page })
 
 function blobFromRaw(raw) {
   const m = raw.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/);
-  return `https://github.com/${m[1]}/${m[2]}/blob/${m[3]}/${m[4]}`;
+  // Mirror the app's rawToBlob fallback: on a non-match, return the raw URL rather
+  // than throwing on m[1], so a future off-pattern URL fails as a clean assertion.
+  return m ? `https://github.com/${m[1]}/${m[2]}/blob/${m[3]}/${m[4]}` : raw;
 }
 function defaultSel(d) {
   const channels = Object.keys(d.firmware);
