@@ -6,6 +6,16 @@
   <title>Apollo Installer</title>
   <meta name="description" content="Flash your Apollo Automation device from the browser.">
   <link rel="icon" href="assets/brand/favicon.png">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      } catch (e) {}
+    }());
+  </script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -18,6 +28,7 @@
       <a href="https://wiki.apolloautomation.com">Wiki</a>
       <a href="https://apolloautomation.com">Shop</a>
       <a href="https://dsc.gg/ApolloAutomation">Discord</a>
+      <button id="theme-toggle" class="theme-btn" title="Toggle theme" aria-label="Toggle theme">🌙</button>
     </nav>
   </header>
   <main id="app"><p class="loading">Loading devices…</p></main>

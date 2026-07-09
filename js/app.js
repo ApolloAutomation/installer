@@ -1,6 +1,7 @@
 import { loadRegistry } from './registry.js';
 import { renderHub } from './views/hub.js';
 import { renderDevice } from './views/device.js';
+import { initThemeToggle } from './theme.js';
 
 const app = document.getElementById('app');
 
@@ -29,3 +30,4 @@ async function route() {
 
 window.addEventListener('hashchange', route);
 route();
+initThemeToggle();
