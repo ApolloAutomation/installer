@@ -11,12 +11,23 @@ test('hub renders a card for every registry device', async ({ page }) => {
   }
 });
 
-test('category filter narrows the grid', async ({ page }) => {
+test('category filter shows exactly the cards in that category', async ({ page }) => {
   await page.goto('/');
-  const cat = registry.devices[0].category;
-  const inCat = registry.devices.filter((d) => d.category === cat).length;
+  // Pick a category deterministically (most-populated, alphabetical tiebreak)
+  // instead of depending on devices[0]'s position in the registry.
+  const byCat = {};
+  for (const d of registry.devices) (byCat[d.category] ||= []).push(d.id);
+  const cat = Object.keys(byCat)
+    .sort((a, b) => byCat[b].length - byCat[a].length || a.localeCompare(b))[0];
+  const expectedIds = byCat[cat].slice().sort();
+
   await page.locator(`.filters button[data-cat="${cat}"]`).click();
-  await expect(page.locator('a.device-card:visible')).toHaveCount(inCat);
+  const visibleIds = (await page.locator('a.device-card:visible')
+    .evaluateAll((els) => els.map((e) => e.getAttribute('href'))))
+    .map((h) => h.replace('#/', '')).sort();
+  // Assert *which* cards show, not just how many.
+  expect(visibleIds).toEqual(expectedIds);
+
   await page.locator('.filters button[data-cat="all"]').click();
   await expect(page.locator('a.device-card:visible')).toHaveCount(registry.devices.length);
 });
@@ -52,6 +63,9 @@ test('manual fallback renders when WebSerial is unavailable', async ({ page }) =
   await page.goto(`/#/${d.id}`);
   await expect(page.locator('.fallback')).toBeVisible();
   await expect(page.locator('esp-web-install-button')).toHaveCount(0);
+  // esptool v5 spells the subcommand `write-flash` and needs an explicit --port.
+  await expect(page.locator('.fallback code')).toContainText('write-flash');
+  await expect(page.locator('.fallback code')).toContainText('--port');
 });
 
 test('late manifest fetch for a deselected variant does not overwrite the fallback list', async ({ page }) => {
@@ -121,6 +135,17 @@ test('release notes degrade to a releases link on API failure', async ({ page })
   await page.goto(`/#/${d.id}`);
   await expect(page.locator('.release-notes .fail-link')).toHaveAttribute(
     'href', `https://github.com/${d.repo}/releases`);
+});
+
+test('release notes ignore an off-allowlist API url and use the safe releases href', async ({ page }) => {
+  const d = registry.devices[0];
+  // A compromised or unexpected html_url must never become the "Full release" link;
+  // anything not on github.com falls back to the device's releases page.
+  await page.route('https://api.github.com/**', (route) =>
+    route.fulfill({ json: { name: 'v1.2.3.4', body: '- note', html_url: 'https://evil.example.com/pwn' } }));
+  await page.goto(`/#/${d.id}`);
+  const full = page.locator('.release-notes a', { hasText: 'Full release' });
+  await expect(full).toHaveAttribute('href', `https://github.com/${d.repo}/releases`);
 });
 
 test('step 3 shows the Home Assistant hand-off', async ({ page }) => {

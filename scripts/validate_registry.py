@@ -18,8 +18,36 @@ def head_ok(url):
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
             return r.status == 200
-    except urllib.error.URLError:
+    except (urllib.error.URLError, TimeoutError):
+        # A read-phase timeout raises TimeoutError, not URLError — treat any
+        # connection/timeout failure as "part unreachable" rather than crashing.
         return False
+
+def check_manifest_shape(manifest, where):
+    """Validate manifest structure without touching the network.
+
+    Returns a list of error strings (empty when the shape is sound). A build
+    with no parts, or a part with no "path", is a hard error rather than a
+    silent pass or a KeyError crash.
+    """
+    errs = []
+    builds = manifest.get("builds")
+    if not builds:
+        errs.append(f"{where}: manifest has no builds[]")
+        return errs
+    for b in builds:
+        if "chipFamily" not in b:
+            errs.append(f"{where}: build missing chipFamily")
+        parts = b.get("parts")
+        if not parts:
+            errs.append(f"{where}: build has no parts[]")
+            continue
+        for part in parts:
+            if not part.get("path"):
+                # Absent, empty, or null path — matches the network loop's skip
+                # test so a broken path can never slip past both checks.
+                errs.append(f"{where}: firmware part missing 'path'")
+    return errs
 
 def check_manifest(dev_id, channel, variant, murl):
     where = f"{dev_id} {channel}/{variant}"
@@ -30,15 +58,13 @@ def check_manifest(dev_id, channel, variant, murl):
     except Exception as e:
         errors.append(f"{where}: manifest fetch/parse failed: {e}")
         return
-    builds = manifest.get("builds")
-    if not builds:
-        errors.append(f"{where}: manifest has no builds[]")
-        return
-    for b in builds:
-        if "chipFamily" not in b:
-            errors.append(f"{where}: build missing chipFamily")
+    errors.extend(check_manifest_shape(manifest, where))
+    for b in manifest.get("builds", []):
         for part in b.get("parts", []):
-            purl = urllib.parse.urljoin(murl, part["path"])
+            path = part.get("path")
+            if not path:
+                continue  # already reported by check_manifest_shape
+            purl = urllib.parse.urljoin(murl, path)
             if not head_ok(purl):
                 errors.append(f"{where}: firmware part missing: {purl}")
 

@@ -101,7 +101,7 @@ export function renderDevice(el, device) {
           <ul id="fallback-files"><li>Loading firmware file list…</li></ul>
           <ul>
             <li>Flash it with <a href="https://web.esphome.io">ESPHome Web</a> (open it in Chrome/Edge) or
-                <code>esptool write_flash 0x0 &lt;file&gt;</code>.</li>
+                <code>esptool write-flash --port &lt;port&gt; 0x0 &lt;file&gt;</code>.</li>
             <li>Or use the <a href="${device.githubPagesInstaller}">classic installer page</a> in Chrome/Edge.</li>
           </ul>
         </div>`;
