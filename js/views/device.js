@@ -66,10 +66,10 @@ export function renderDevice(el, device) {
           ${segHtml('channel-seg', 'Channel', channels, channel, 'channel')}
           <div id="variant-slot"></div>
         </div>
+        ${channels.length < 2 && Object.keys(device.firmware[channel]).length < 2
+          ? '<p style="color:var(--dim);margin:0 0 4px;">One firmware for this device — nothing to choose here.</p>' : ''}
         <div id="release-slot"></div>
         <div id="config-slot"></div>
-        ${channels.length < 2 && Object.keys(device.firmware[channel]).length < 2
-          ? '<p style="color:var(--dim);margin:0;">One firmware for this device — nothing to choose here.</p>' : ''}
       </section>
 
       <section class="step">

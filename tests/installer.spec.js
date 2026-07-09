@@ -265,3 +265,21 @@ test('device config: no section when the device has no config', async ({ page })
   await page.goto(`/#/${d.id}`);
   await expect(page.locator('.config')).toHaveCount(0);
 });
+
+test('single-firmware devices show the "nothing to choose" note above the release/config sections', async ({ page }) => {
+  const d = registry.devices.find((x) => {
+    const chans = Object.keys(x.firmware);
+    return chans.length === 1 && Object.keys(x.firmware[chans[0]]).length === 1;
+  });
+  test.skip(!d, 'no single-firmware device in registry');
+  await page.goto(`/#/${d.id}`);
+  const step = page.locator('.device-page .step').first();
+  await expect(step.getByText('nothing to choose here')).toBeVisible();
+  // The note must render up under the picker, above the "What's new" and reflash sections.
+  const noteBeforeRelease = await step.evaluate((el) => {
+    const note = [...el.querySelectorAll('p')].find((p) => p.textContent.includes('nothing to choose'));
+    const rel = el.querySelector('#release-slot');
+    return !!(note && rel && (note.compareDocumentPosition(rel) & Node.DOCUMENT_POSITION_FOLLOWING));
+  });
+  expect(noteBeforeRelease).toBe(true);
+});
