@@ -1,0 +1,2 @@
+# Vendored upstream copy (esp-web-tools) — never normalize line endings.
+vendor/** -text

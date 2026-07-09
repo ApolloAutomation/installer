@@ -4,7 +4,7 @@
   "description": "",
   "main": "installer.spec.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "playwright test"
   },
   "keywords": [],
   "author": "",
