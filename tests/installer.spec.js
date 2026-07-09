@@ -213,3 +213,55 @@ test('device config: reflash section renders the fetched YAML and derived GitHub
   await expect(page.locator('.config-yaml code')).toContainText('mock-cfg');
   await expect(page.locator('.config-github')).toHaveAttribute('href', blobFromRaw(url));
 });
+
+test('device config: switching variant swaps the config', async ({ page }) => {
+  const d = registry.devices.find((x) => x.config && x.config.stable && Object.keys(x.config.stable).length > 1);
+  test.skip(!d, 'no multi-variant config device');
+  const variants = Object.keys(d.config.stable);
+  for (const v of variants) {
+    await page.route(d.config.stable[v], (route) =>
+      route.fulfill({ contentType: 'text/plain', body: `esphome:\n  name: cfg-${v}\n` }));
+  }
+  await page.goto(`/#/${d.id}`);
+  await expect(page.locator('.config-yaml code')).toContainText(`cfg-${variants[0]}`);
+  await page.locator(`#variant-seg button[data-variant="${variants[1]}"]`).click();
+  await expect(page.locator('.config-yaml code')).toContainText(`cfg-${variants[1]}`);
+});
+
+test('device config: a slow fetch for a deselected variant does not overwrite', async ({ page }) => {
+  const d = registry.devices.find((x) => x.config && x.config.stable && Object.keys(x.config.stable).length > 1);
+  test.skip(!d, 'no multi-variant config device');
+  const variants = Object.keys(d.config.stable);
+  await page.route(d.config.stable[variants[0]], async (route) => {
+    await new Promise((r) => setTimeout(r, 1500));
+    await route.fulfill({ contentType: 'text/plain', body: 'esphome:\n  name: cfg-slow-0\n' });
+  });
+  await page.route(d.config.stable[variants[1]], (route) =>
+    route.fulfill({ contentType: 'text/plain', body: 'esphome:\n  name: cfg-fast-1\n' }));
+  await page.goto(`/#/${d.id}`);
+  await page.locator(`#variant-seg button[data-variant="${variants[1]}"]`).click();
+  await page.waitForTimeout(2500);
+  await expect(page.locator('.config-yaml code')).toContainText('cfg-fast-1');
+  await expect(page.locator('.config-yaml code')).not.toContainText('cfg-slow-0');
+});
+
+test('device config: download uses the real filename', async ({ page }) => {
+  const d = registry.devices.find((x) => x.config && defaultSel(x).url);
+  test.skip(!d, 'no device has a config for its default selection');
+  const { url } = defaultSel(d);
+  await page.route(url, (route) => route.fulfill({ contentType: 'text/plain', body: 'esphome:\n' }));
+  await page.goto(`/#/${d.id}`);
+  await page.locator('.config summary').click(); // expand so the button is visible
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.locator('.config-download').click(),
+  ]);
+  expect(download.suggestedFilename()).toBe(url.split('/').pop());
+});
+
+test('device config: no section when the device has no config', async ({ page }) => {
+  const d = registry.devices.find((x) => !x.config);
+  test.skip(!d, 'every device has a config');
+  await page.goto(`/#/${d.id}`);
+  await expect(page.locator('.config')).toHaveCount(0);
+});
