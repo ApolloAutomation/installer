@@ -191,3 +191,25 @@ test('step 3 explains taking control in the ESPHome Dashboard', async ({ page })
   await expect(done).toContainText('Take control');
   await expect(done.locator('code')).toContainText('dashboard_import');
 });
+
+function blobFromRaw(raw) {
+  const m = raw.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/);
+  return `https://github.com/${m[1]}/${m[2]}/blob/${m[3]}/${m[4]}`;
+}
+function defaultSel(d) {
+  const channels = Object.keys(d.firmware);
+  const channel = channels.includes('stable') ? 'stable' : channels[0];
+  const variant = Object.keys(d.firmware[channel])[0];
+  return { channel, variant, url: d.config && d.config[channel] && d.config[channel][variant] };
+}
+
+test('device config: reflash section renders the fetched YAML and derived GitHub link', async ({ page }) => {
+  const d = registry.devices.find((x) => x.config && defaultSel(x).url);
+  test.skip(!d, 'no device has a config for its default selection');
+  const { url } = defaultSel(d);
+  await page.route(url, (route) => route.fulfill({ contentType: 'text/plain', body: 'esphome:\n  name: mock-cfg\n' }));
+  await page.goto(`/#/${d.id}`);
+  await expect(page.locator('.config')).toBeVisible();
+  await expect(page.locator('.config-yaml code')).toContainText('mock-cfg');
+  await expect(page.locator('.config-github')).toHaveAttribute('href', blobFromRaw(url));
+});

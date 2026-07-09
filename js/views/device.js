@@ -6,6 +6,22 @@ import { fetchReleaseNotes } from '../release-notes.js';
 const esc = (s) => String(s).replace(/[&<>"']/g,
   (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+function rawToBlob(raw) {
+  const m = raw.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/);
+  return m ? `https://github.com/${m[1]}/${m[2]}/blob/${m[3]}/${m[4]}` : raw;
+}
+function configBasename(url) {
+  return (url.split('/').pop() || 'config.yaml').replace(/[^\w.\-]/g, '_');
+}
+function downloadText(text, filename) {
+  const blob = new Blob([text], { type: 'text/yaml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function selectedManifest(device, channel, variant) {
   return device.firmware[channel][variant];
 }
@@ -51,6 +67,7 @@ export function renderDevice(el, device) {
           <div id="variant-slot"></div>
         </div>
         <div id="release-slot"></div>
+        <div id="config-slot"></div>
         ${channels.length < 2 && Object.keys(device.firmware[channel]).length < 2
           ? '<p style="color:var(--dim);margin:0;">One firmware for this device — nothing to choose here.</p>' : ''}
       </section>
@@ -94,6 +111,7 @@ export function renderDevice(el, device) {
         x.setAttribute('aria-pressed', String(on));
       });
       renderInstall();
+      renderConfig();
     });
   }
 
@@ -166,6 +184,40 @@ export function renderDevice(el, device) {
     }
   }
 
+  async function renderConfig() {
+    const slot = el.querySelector('#config-slot');
+    const url = device.config && device.config[channel] && device.config[channel][variant];
+    if (!url) { slot.innerHTML = ''; return; }
+    const filename = configBasename(url);
+    slot.innerHTML = `
+      <details class="config">
+        <summary>Build or reflash this firmware yourself</summary>
+        <p class="config-hint">The ESPHome config for the <strong>${variant}</strong> variant
+          (<code>${filename}</code>). Rebuilding from this keeps the device's onboarding, so the
+          <a href="${device.wiki}">${device.name} wiki</a> setup steps still apply.</p>
+        <pre class="config-yaml"><code>Loading config…</code></pre>
+        <div class="config-actions">
+          <button class="config-download" disabled>Download .yaml</button>
+          <a class="config-github" href="${rawToBlob(url)}" target="_blank" rel="noopener">View on GitHub →</a>
+        </div>
+      </details>`;
+    const codeEl = slot.querySelector('.config-yaml code');
+    const dlBtn = slot.querySelector('.config-download');
+    const myEpoch = epoch;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      if (epoch !== myEpoch) return; // selection changed mid-fetch
+      codeEl.textContent = text; // textContent escapes the runtime-fetched YAML
+      dlBtn.disabled = false;
+      dlBtn.addEventListener('click', () => downloadText(text, filename));
+    } catch {
+      if (epoch !== myEpoch) return;
+      codeEl.textContent = 'Could not load the config here — use "View on GitHub".';
+    }
+  }
+
   const chanSeg = el.querySelector('#channel-seg');
   if (chanSeg) chanSeg.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-channel]');
@@ -181,9 +233,11 @@ export function renderDevice(el, device) {
     renderVariantSeg();
     renderInstall();
     renderReleaseNotes();
+    renderConfig();
   });
 
   renderVariantSeg();
   renderInstall();
   renderReleaseNotes();
+  renderConfig();
 }
