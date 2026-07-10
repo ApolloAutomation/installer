@@ -50,10 +50,15 @@ summary:focus-visible {
 .site-header nav { display: flex; gap: 18px; align-items: center; }
 .site-header nav a { color: var(--dim); text-decoration: none; }
 .theme-btn {
-  background: none; border: none; cursor: pointer; color: var(--dim);
-  font-size: 1rem; padding: 0; line-height: 1; visibility: hidden;
+  width: 26px; height: 26px; border: none; padding: 0; cursor: pointer;
+  /* Apollo dog mascot, painted full-colour (not tinted) like the wiki annotation marker. */
+  background: url("../assets/brand/apollo-dog.png") center / contain no-repeat;
+  visibility: hidden; /* revealed by theme.js once wired up */
 }
-.theme-btn:hover { color: var(--ink); }
+.theme-btn:hover { opacity: .75; }
+/* On the dark header the dog's dark outline vanishes; give it the same white
+   backing it already has on the (white) light-mode header so it stays legible. */
+[data-theme="dark"] .theme-btn { background-color: #fff; border-radius: 6px; }
 main { max-width: 1080px; margin: 0 auto; padding: 32px 24px 64px; }
 .site-footer { text-align: center; color: var(--dim); font-size: .85rem; padding: 24px; border-top: 1px solid var(--line); }
 .loading { color: var(--dim); }
