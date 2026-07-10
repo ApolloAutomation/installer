@@ -194,7 +194,9 @@ test('step 3 explains taking control in the ESPHome Dashboard', async ({ page })
 
 function blobFromRaw(raw) {
   const m = raw.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/);
-  return `https://github.com/${m[1]}/${m[2]}/blob/${m[3]}/${m[4]}`;
+  // Mirror the app's rawToBlob fallback: on a non-match, return the raw URL rather
+  // than throwing on m[1], so a future off-pattern URL fails as a clean assertion.
+  return m ? `https://github.com/${m[1]}/${m[2]}/blob/${m[3]}/${m[4]}` : raw;
 }
 function defaultSel(d) {
   const channels = Object.keys(d.firmware);
@@ -264,4 +266,22 @@ test('device config: no section when the device has no config', async ({ page })
   test.skip(!d, 'every device has a config');
   await page.goto(`/#/${d.id}`);
   await expect(page.locator('.config')).toHaveCount(0);
+});
+
+test('single-firmware devices show the "nothing to choose" note above the release/config sections', async ({ page }) => {
+  const d = registry.devices.find((x) => {
+    const chans = Object.keys(x.firmware);
+    return chans.length === 1 && Object.keys(x.firmware[chans[0]]).length === 1;
+  });
+  test.skip(!d, 'no single-firmware device in registry');
+  await page.goto(`/#/${d.id}`);
+  const step = page.locator('.device-page .step').first();
+  await expect(step.getByText('nothing to choose here')).toBeVisible();
+  // The note must render up under the picker, above the "What's new" and reflash sections.
+  const noteBeforeRelease = await step.evaluate((el) => {
+    const note = [...el.querySelectorAll('p')].find((p) => p.textContent.includes('nothing to choose'));
+    const rel = el.querySelector('#release-slot');
+    return !!(note && rel && (note.compareDocumentPosition(rel) & Node.DOCUMENT_POSITION_FOLLOWING));
+  });
+  expect(noteBeforeRelease).toBe(true);
 });
