@@ -129,12 +129,12 @@ export function renderDevice(el, device) {
       installSlot.innerHTML = `
         <div class="fallback">
           <strong>This browser can't flash over USB.</strong>
-          <p>Installing from the browser needs Chrome or Edge. You can still install manually:</p>
+          <p>Installing from the browser needs Chrome, Edge, or Firefox. You can still install manually:</p>
           <ul id="fallback-files"><li>Loading firmware file list…</li></ul>
           <ul>
-            <li>Flash it with <a href="https://web.esphome.io">ESPHome Web</a> (open it in Chrome/Edge) or
+            <li>Flash it with <a href="https://web.esphome.io">ESPHome Web</a> (open it in Chrome, Edge, or Firefox) or
                 <code>esptool write-flash --port &lt;port&gt; 0x0 &lt;file&gt;</code>.</li>
-            <li>Or use the <a href="${device.githubPagesInstaller}">classic installer page</a> in Chrome/Edge.</li>
+            <li>Or use the <a href="${device.githubPagesInstaller}">classic installer page</a> in Chrome, Edge, or Firefox.</li>
           </ul>
         </div>`;
       // Pin the list element before the fetch: if the user navigates to another
