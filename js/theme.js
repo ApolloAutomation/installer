@@ -1,5 +1,6 @@
 // js/theme.js — theme toggle: System / Dark / Light (cycles on click)
 const THEMES = ['system', 'dark', 'light'];
+const ICONS  = { system: '🌓', dark: '🌙', light: '☀️' };
 const LABELS = { system: 'System theme', dark: 'Dark theme',  light: 'Light theme' };
 const NEXT_LABEL = {
   system: 'Switch to dark theme',
@@ -32,9 +33,11 @@ export function initThemeToggle() {
   if (!btn) return;
 
   const mq = matchMedia('(prefers-color-scheme: dark)');
+  const badge = btn.querySelector('.theme-mode');
 
   function updateBtn(pref) {
-    // The icon is the Apollo dog (a CSS background); only the labels track state.
+    // The dog is the CSS background; the small badge shows the current mode.
+    if (badge) badge.textContent = ICONS[pref];
     btn.setAttribute('aria-label', LABELS[pref]);
     btn.title = NEXT_LABEL[pref];
   }
