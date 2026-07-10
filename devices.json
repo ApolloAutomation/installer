@@ -12,7 +12,7 @@
       "githubPagesInstaller": "https://apolloautomation.github.io/MSR-1/",
       "firmware": {
         "stable": {
-          "Standard": "https://apolloautomation.github.io/MSR-1/firmware/manifest.json"
+          "Standard": "https://apolloautomation.github.io/MSR-1/firmware-factory/manifest.json"
         }
       },
       "config": {
