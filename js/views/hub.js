@@ -4,8 +4,7 @@ export function renderHub(el, registry) {
   el.innerHTML = `
     <section class="hero">
       <h1>Flash your Apollo device from the browser</h1>
-      <p>Plug your device into USB, pick it below, and you'll be up and running in about two minutes.
-         Installing needs Chrome, Edge, or Firefox — other browsers get manual instructions.</p>
+      <p>Plug in your device via USB, choose your device below, and you'll be running the latest firmware in minutes!</p>
     </section>
     <div class="filters">
       <button data-cat="all" class="active" aria-pressed="true">All devices</button>

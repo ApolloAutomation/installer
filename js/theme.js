@@ -1,6 +1,5 @@
 // js/theme.js — theme toggle: System / Dark / Light (cycles on click)
 const THEMES = ['system', 'dark', 'light'];
-const ICONS  = { system: '⬤', dark: '🌙', light: '☀' };
 const LABELS = { system: 'System theme', dark: 'Dark theme',  light: 'Light theme' };
 const NEXT_LABEL = {
   system: 'Switch to dark theme',
@@ -35,7 +34,7 @@ export function initThemeToggle() {
   const mq = matchMedia('(prefers-color-scheme: dark)');
 
   function updateBtn(pref) {
-    btn.textContent = ICONS[pref];
+    // The icon is the Apollo dog (a CSS background); only the labels track state.
     btn.setAttribute('aria-label', LABELS[pref]);
     btn.title = NEXT_LABEL[pref];
   }
@@ -57,7 +56,9 @@ export function initThemeToggle() {
     setPref(next);
   });
 
-  // Initialise button state (makes it visible)
+  // Initialise button state and reveal it (CSS hides it until JS wires it up).
+  // Must be an explicit 'visible' — '' only clears the inline value and would
+  // fall back to the .theme-btn { visibility: hidden } rule, leaving it hidden.
   updateBtn(storedPref());
-  btn.style.visibility = '';
+  btn.style.visibility = 'visible';
 }

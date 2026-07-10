@@ -11,6 +11,13 @@ test('hub renders a card for every registry device', async ({ page }) => {
   }
 });
 
+test('theme toggle is revealed once the script wires it up', async ({ page }) => {
+  await page.goto('/');
+  // CSS hides .theme-btn until theme.js sets an explicit visibility; a regression
+  // to `visibility = ''` would fall back to the hidden rule and fail this.
+  await expect(page.locator('#theme-toggle')).toBeVisible();
+});
+
 test('category filter shows exactly the cards in that category', async ({ page }) => {
   await page.goto('/');
   // Pick a category deterministically (most-populated, alphabetical tiebreak)
