@@ -50,12 +50,19 @@ summary:focus-visible {
 .site-header nav { display: flex; gap: 18px; align-items: center; }
 .site-header nav a { color: var(--dim); text-decoration: none; }
 .theme-btn {
-  width: 26px; height: 26px; border: none; padding: 0; cursor: pointer;
+  position: relative; width: 30px; height: 30px; border: none; padding: 0; cursor: pointer;
   /* Apollo dog mascot, painted full-colour (not tinted) like the wiki annotation marker. */
   background: url("../assets/brand/apollo-dog.png") center / contain no-repeat;
   visibility: hidden; /* revealed by theme.js once wired up */
 }
-.theme-btn:hover { opacity: .75; }
+.theme-btn:hover { opacity: .8; }
+/* Sun/moon/auto badge so the dog reads as the theme control. */
+.theme-mode {
+  position: absolute; right: -4px; bottom: -3px;
+  width: 15px; height: 15px; border-radius: 50%;
+  background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .15);
+  font-size: 9px; line-height: 15px; text-align: center;
+}
 /* On the dark header the dog's dark outline vanishes; give it the same white
    backing it already has on the (white) light-mode header so it stays legible. */
 [data-theme="dark"] .theme-btn { background-color: #fff; border-radius: 6px; }
@@ -65,7 +72,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 32px 24px 64px; }
 
 /* Hub */
 .hero h1 { font-size: 1.9rem; margin: 0 0 6px; letter-spacing: -.01em; }
-.hero p { color: var(--dim); margin: 0 0 18px; max-width: 60ch; }
+.hero p { color: var(--dim); margin: 0 0 18px; }
 .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
 .filters button {
   border: 1px solid var(--line); background: var(--panel); color: var(--dim);
