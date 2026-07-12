@@ -217,6 +217,23 @@
           "Standard": "https://raw.githubusercontent.com/ApolloAutomation/BTN-1/main/Integrations/ESPHome/BTN-1.yaml"
         }
       }
+    },
+    {
+      "id": "m-1",
+      "name": "M-1",
+      "category": "LED matrix",
+      "description": "64x64 HUB75 LED matrix display (WLED firmware)",
+      "image": "images/m-1.jpg",
+      "imageSource": "https://wiki.apolloautomation.com/assets/Apollo_Square.png",
+      "wiki": "https://wiki.apolloautomation.com/products/m1/introduction/",
+      "repo": "ApolloAutomation/WLED-MM-M1",
+      "githubPagesInstaller": "https://apolloautomation.github.io/WLED-MM-M1/",
+      "firmware": {
+        "stable": {
+          "Rev4": "https://apolloautomation.github.io/WLED-MM-M1/14.5.1/manifest.json",
+          "Rev6": "https://apolloautomation.github.io/WLED-MM-M1/Rev6_14.5.1/manifest.json"
+        }
+      }
     }
   ]
 }
