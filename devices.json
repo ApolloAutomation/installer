@@ -232,7 +232,7 @@
         "stable": {
           "WLED-MM 14.5.1 (Rev6)": "https://apolloautomation.github.io/WLED-MM-M1/Rev6_14.5.1/manifest.json",
           "WLED-MM 14.5.1 (Rev4)": "https://apolloautomation.github.io/WLED-MM-M1/14.5.1/manifest.json",
-          "WLED 16.0.1 (Rev6 only)": "https://apolloautomation.github.io/WLED-MM-M1/16.0.1/manifest.json"
+          "WLED 16.0.1 (Rev6 only)": "https://apolloautomation.github.io/WLED-M1/manifest.json"
         }
       }
     }
