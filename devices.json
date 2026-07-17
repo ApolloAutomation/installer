@@ -222,16 +222,17 @@
       "id": "m-1",
       "name": "M-1",
       "category": "LED matrix",
-      "description": "64x64 HUB75 LED matrix display (WLED firmware)",
+      "description": "64x64 HUB75 LED matrix controller (WLED firmware)",
       "image": "images/m-1.jpg",
-      "imageSource": "https://wiki.apolloautomation.com/assets/Apollo_Square.png",
+      "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/M-1_Full_Kit_bd50d749-ee4d-43fd-b2b9-8093d3459388.jpg?v=1754315671",
       "wiki": "https://wiki.apolloautomation.com/products/m1/introduction/",
       "repo": "ApolloAutomation/WLED-MM-M1",
       "githubPagesInstaller": "https://apolloautomation.github.io/WLED-MM-M1/",
       "firmware": {
         "stable": {
-          "Rev4": "https://apolloautomation.github.io/WLED-MM-M1/14.5.1/manifest.json",
-          "Rev6": "https://apolloautomation.github.io/WLED-MM-M1/Rev6_14.5.1/manifest.json"
+          "WLED-MM 14.5.1 (Rev6)": "https://apolloautomation.github.io/WLED-MM-M1/Rev6_14.5.1/manifest.json",
+          "WLED-MM 14.5.1 (Rev4)": "https://apolloautomation.github.io/WLED-MM-M1/14.5.1/manifest.json",
+          "WLED 16.0.1 (Rev6 only)": "https://apolloautomation.github.io/WLED-MM-M1/16.0.1/manifest.json"
         }
       }
     }
