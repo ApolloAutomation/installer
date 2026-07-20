@@ -140,12 +140,19 @@ export function renderDevice(el, device) {
     const repo = repoFor(device, channel, variant);
     const classic = classicInstallerFor(device, channel, variant);
     if (hasSerial) {
-      installSlot.innerHTML = `
-        <esp-web-install-button manifest="${manifest}">
-          <button slot="activate" class="install-btn">Connect &amp; Install</button>
-        </esp-web-install-button>
-        <p style="color:var(--dim);font-size:.85rem;margin:10px 0 0;">
-          Plug the device into this computer with a USB data cable, click the button, and pick the serial port.</p>`;
+      const existing = installSlot.querySelector('esp-web-install-button');
+      if (existing) {
+        // Reuse the button; only the manifest differs between variants. Rebuilding
+        // it would recreate the web component and flash on every variant change.
+        existing.setAttribute('manifest', manifest);
+      } else {
+        installSlot.innerHTML = `
+          <esp-web-install-button manifest="${manifest}">
+            <button slot="activate" class="install-btn">Connect &amp; Install</button>
+          </esp-web-install-button>
+          <p style="color:var(--dim);font-size:.85rem;margin:10px 0 0;">
+            Plug the device into this computer with a USB data cable, click the button, and pick the serial port.</p>`;
+      }
     } else {
       installSlot.innerHTML = `
         <div class="fallback">
