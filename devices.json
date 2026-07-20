@@ -239,6 +239,11 @@
         "stable": {
           "WLED 16.0.1 (Rev6 only)": "ApolloAutomation/WLED-M1"
         }
+      },
+      "installers": {
+        "stable": {
+          "WLED 16.0.1 (Rev6 only)": null
+        }
       }
     }
   ]

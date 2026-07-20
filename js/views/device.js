@@ -30,6 +30,11 @@ function repoFor(device, channel, variant) {
   return (device.repos && device.repos[channel] && device.repos[channel][variant]) || device.repo;
 }
 
+function classicInstallerFor(device, channel, variant) {
+  const map = device.installers && device.installers[channel];
+  return map && variant in map ? map[variant] : device.githubPagesInstaller;
+}
+
 function segHtml(id, label, keys, active, dataAttr) {
   if (keys.length < 2) return '';
   return `
@@ -56,11 +61,7 @@ export function renderDevice(el, device) {
         <div>
           <h1>${device.name}</h1>
           <p>${device.description}</p>
-          <p class="links">
-            <a href="${device.wiki}">Setup guide</a> ·
-            <a href="https://github.com/${device.repo}">GitHub</a> ·
-            <a href="${device.githubPagesInstaller}">Classic installer</a>
-          </p>
+          <p class="links" id="links-slot"></p>
         </div>
       </div>
 
@@ -100,6 +101,18 @@ export function renderDevice(el, device) {
 
   const variantSlot = el.querySelector('#variant-slot');
   const installSlot = el.querySelector('#install-slot');
+  const linksSlot = el.querySelector('#links-slot');
+
+  function renderLinks() {
+    const repo = repoFor(device, channel, variant);
+    const classic = classicInstallerFor(device, channel, variant);
+    const parts = [
+      `<a href="${device.wiki}">Setup guide</a>`,
+      `<a href="https://github.com/${repo}">GitHub</a>`,
+    ];
+    if (classic) parts.push(`<a href="${classic}">Classic installer</a>`);
+    linksSlot.innerHTML = parts.join(' · ');
+  }
 
   function renderVariantSeg() {
     variantSlot.innerHTML = segHtml('variant-seg', 'Variant', Object.keys(device.firmware[channel]), variant, 'variant');
@@ -117,6 +130,7 @@ export function renderDevice(el, device) {
       renderInstall();
       renderConfig();
       renderReleaseNotes();
+      renderLinks();
     });
   }
 
@@ -124,6 +138,7 @@ export function renderDevice(el, device) {
     const myEpoch = epoch;
     const manifest = selectedManifest(device, channel, variant);
     const repo = repoFor(device, channel, variant);
+    const classic = classicInstallerFor(device, channel, variant);
     if (hasSerial) {
       installSlot.innerHTML = `
         <esp-web-install-button manifest="${manifest}">
@@ -140,7 +155,7 @@ export function renderDevice(el, device) {
           <ul>
             <li>Flash it with <a href="https://web.esphome.io">ESPHome Web</a> (open it in Chrome, Edge, or Firefox) or
                 <code>esptool write-flash --port &lt;port&gt; 0x0 &lt;file&gt;</code>.</li>
-            <li>Or use the <a href="${device.githubPagesInstaller}">classic installer page</a> in Chrome, Edge, or Firefox.</li>
+            ${classic ? `<li>Or use the <a href="${classic}">classic installer page</a> in Chrome, Edge, or Firefox.</li>` : ''}
           </ul>
         </div>`;
       // Pin the list element before the fetch: if the user navigates to another
@@ -241,10 +256,12 @@ export function renderDevice(el, device) {
     renderInstall();
     renderReleaseNotes();
     renderConfig();
+    renderLinks();
   });
 
   renderVariantSeg();
   renderInstall();
   renderReleaseNotes();
   renderConfig();
+  renderLinks();
 }

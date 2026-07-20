@@ -206,6 +206,34 @@ test('release notes follow the selected variant repo (per-variant repos override
     .toHaveAttribute('href', `https://github.com/${overrideRepo}/releases`);
 });
 
+test('header GitHub link and classic-installer links follow the selected variant', async ({ page }) => {
+  const d = registry.devices.find((x) => x.installers && x.installers.stable
+    && Object.values(x.installers.stable).some((v) => v === null));
+  test.skip(!d, 'no device that hides a classic installer for a variant');
+  const hiddenVariant = Object.keys(d.installers.stable).find((k) => d.installers.stable[k] === null);
+  const defaultVariant = Object.keys(d.firmware.stable)[0];
+  test.skip(hiddenVariant === defaultVariant, 'hidden installer is on the default variant');
+  const overrideRepo = d.repos && d.repos.stable && d.repos.stable[hiddenVariant];
+
+  await page.route('https://api.github.com/**', (route) => route.fulfill({ status: 403 }));
+  await page.goto(`/#/${d.id}`);
+
+  // Default variant: header GitHub = device repo, Classic installer link present.
+  await expect(page.locator('.links a', { hasText: 'GitHub' }))
+    .toHaveAttribute('href', `https://github.com/${d.repo}`);
+  await expect(page.locator('.links a', { hasText: 'Classic installer' })).toHaveCount(1);
+
+  // Select the variant whose installer is null.
+  await page.locator(`#variant-seg button[data-variant="${hiddenVariant}"]`).click();
+
+  // Header GitHub link now points at the override repo (if set); Classic installer link is gone.
+  if (overrideRepo) {
+    await expect(page.locator('.links a', { hasText: 'GitHub' }))
+      .toHaveAttribute('href', `https://github.com/${overrideRepo}`);
+  }
+  await expect(page.locator('.links a', { hasText: 'Classic installer' })).toHaveCount(0);
+});
+
 test('step 3 shows the Home Assistant hand-off', async ({ page }) => {
   const d = registry.devices[0];
   await page.goto(`/#/${d.id}`);
