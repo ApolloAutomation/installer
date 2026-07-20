@@ -92,5 +92,33 @@ class ConfigShape(unittest.TestCase):
             self.assertTrue(any("config" in e for e in errs), (bad, errs))
 
 
+class ReposShapeChecks(unittest.TestCase):
+    FW = {"stable": {"v16": "https://x/m.json", "v14": "https://y/m.json"}}
+
+    def test_absent_repos_ok(self):
+        self.assertEqual(vr.check_repos_shape(None, self.FW, "dev"), [])
+
+    def test_valid_override_ok(self):
+        repos = {"stable": {"v16": "Owner/Repo"}}
+        self.assertEqual(vr.check_repos_shape(repos, self.FW, "dev"), [])
+
+    def test_repos_not_dict_errors(self):
+        errs = vr.check_repos_shape([], self.FW, "dev")
+        self.assertTrue(any("repos" in e for e in errs), errs)
+
+    def test_channel_not_dict_errors(self):
+        errs = vr.check_repos_shape({"stable": "x"}, self.FW, "dev")
+        self.assertTrue(any("stable" in e for e in errs), errs)
+
+    def test_bad_owner_name_errors(self):
+        for bad in ("OwnerRepo", "a/b/c", "own er/repo", "", "/repo", "owner/"):
+            errs = vr.check_repos_shape({"stable": {"v16": bad}}, self.FW, "dev")
+            self.assertTrue(any("owner/name" in e for e in errs), (bad, errs))
+
+    def test_variant_not_in_firmware_errors(self):
+        errs = vr.check_repos_shape({"stable": {"ghost": "Owner/Repo"}}, self.FW, "dev")
+        self.assertTrue(any("no such firmware variant" in e for e in errs), errs)
+
+
 if __name__ == "__main__":
     unittest.main()

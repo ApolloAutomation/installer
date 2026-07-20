@@ -183,6 +183,29 @@ test('release notes ignore an off-allowlist API url and use the safe releases hr
   await expect(full).toHaveAttribute('href', `https://github.com/${d.repo}/releases`);
 });
 
+test('release notes follow the selected variant repo (per-variant repos override)', async ({ page }) => {
+  const d = registry.devices.find((x) => x.repos && x.repos.stable);
+  test.skip(!d, 'no device with a per-variant repos override');
+  const overrideVariant = Object.keys(d.repos.stable)[0];
+  const overrideRepo = d.repos.stable[overrideVariant];
+  const defaultVariant = Object.keys(d.firmware.stable)[0];
+  test.skip(overrideVariant === defaultVariant, 'override is on the default variant');
+
+  // Force the API-failure path so the deterministic .fail-link (built from the
+  // resolved repo) is what we assert on.
+  await page.route('https://api.github.com/**', (route) => route.fulfill({ status: 403 }));
+  await page.goto(`/#/${d.id}`);
+
+  // Default variant resolves to the device-level repo.
+  await expect(page.locator('.release-notes .fail-link'))
+    .toHaveAttribute('href', `https://github.com/${d.repo}/releases`);
+
+  // Selecting the override variant must re-render release notes against the override repo.
+  await page.locator(`#variant-seg button[data-variant="${overrideVariant}"]`).click();
+  await expect(page.locator('.release-notes .fail-link'))
+    .toHaveAttribute('href', `https://github.com/${overrideRepo}/releases`);
+});
+
 test('step 3 shows the Home Assistant hand-off', async ({ page }) => {
   const d = registry.devices[0];
   await page.goto(`/#/${d.id}`);

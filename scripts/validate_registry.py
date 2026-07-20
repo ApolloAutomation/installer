@@ -67,6 +67,31 @@ def check_config_shape(config, dev_id):
                 errs.append(f"{dev_id} config {channel}/{variant}: not an https URL")
     return errs
 
+def check_repos_shape(repos, firmware, dev_id):
+    """Validate the optional `repos` map (channel -> variant -> "owner/name").
+
+    Network-free. `repos` absent (None) is valid. Every variant key must exist
+    in `firmware[channel]`, so a mistyped key that would silently fall back to
+    the device repo is caught instead. Returns a list of error strings.
+    """
+    errs = []
+    if repos is None:
+        return errs
+    if not isinstance(repos, dict):
+        errs.append(f"{dev_id} repos: not an object")
+        return errs
+    for channel, variants in repos.items():
+        if not isinstance(variants, dict):
+            errs.append(f"{dev_id} repos {channel}: not an object")
+            continue
+        for variant, repo in variants.items():
+            if (not isinstance(repo, str) or repo.count("/") != 1
+                    or " " in repo or not all(repo.split("/"))):
+                errs.append(f"{dev_id} repos {channel}/{variant}: not an 'owner/name' string")
+            if variant not in firmware.get(channel, {}):
+                errs.append(f"{dev_id} repos {channel}/{variant}: no such firmware variant")
+    return errs
+
 def check_manifest(dev_id, channel, variant, murl):
     where = f"{dev_id} {channel}/{variant}"
     try:
@@ -97,6 +122,7 @@ def main():
                 check_manifest(dev["id"], channel, variant, murl)
         config = dev.get("config", {})
         errors.extend(check_config_shape(config, dev["id"]))
+        errors.extend(check_repos_shape(dev.get("repos"), dev.get("firmware", {}), dev["id"]))
         if not isinstance(config, dict):
             continue
         for channel, variants in config.items():

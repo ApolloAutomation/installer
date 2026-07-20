@@ -26,6 +26,10 @@ function selectedManifest(device, channel, variant) {
   return device.firmware[channel][variant];
 }
 
+function repoFor(device, channel, variant) {
+  return (device.repos && device.repos[channel] && device.repos[channel][variant]) || device.repo;
+}
+
 function segHtml(id, label, keys, active, dataAttr) {
   if (keys.length < 2) return '';
   return `
@@ -112,12 +116,14 @@ export function renderDevice(el, device) {
       });
       renderInstall();
       renderConfig();
+      renderReleaseNotes();
     });
   }
 
   async function renderInstall() {
     const myEpoch = epoch;
     const manifest = selectedManifest(device, channel, variant);
+    const repo = repoFor(device, channel, variant);
     if (hasSerial) {
       installSlot.innerHTML = `
         <esp-web-install-button manifest="${manifest}">
@@ -153,7 +159,7 @@ export function renderDevice(el, device) {
         if (epoch !== myEpoch) return; // selection changed mid-fetch
         filesEl.innerHTML =
           `<li>Couldn't load the file list — download firmware from the
-             <a href="https://github.com/${device.repo}/releases">latest release</a>.</li>`;
+             <a href="https://github.com/${repo}/releases">latest release</a>.</li>`;
       }
     }
   }
@@ -162,10 +168,11 @@ export function renderDevice(el, device) {
     const slot = el.querySelector('#release-slot');
     slot.innerHTML = '';
     const myEpoch = epoch;
+    const repo = repoFor(device, channel, variant);
     try {
-      const rel = await fetchReleaseNotes(device.repo, channel);
+      const rel = await fetchReleaseNotes(repo, channel);
       if (epoch !== myEpoch) return; // selection changed mid-fetch
-      const url = /^https:\/\/github\.com\//.test(rel.url) ? rel.url : `https://github.com/${device.repo}/releases`;
+      const url = /^https:\/\/github\.com\//.test(rel.url) ? rel.url : `https://github.com/${repo}/releases`;
       slot.innerHTML = `
         <div class="release-notes">
           <details>
@@ -178,7 +185,7 @@ export function renderDevice(el, device) {
       if (epoch !== myEpoch) return; // selection changed mid-fetch
       slot.innerHTML = `
         <div class="release-notes">
-          See <a class="fail-link" href="https://github.com/${device.repo}/releases">recent releases</a>
+          See <a class="fail-link" href="https://github.com/${repo}/releases">recent releases</a>
           for what's new.
         </div>`;
     }
