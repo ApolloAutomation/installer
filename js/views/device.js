@@ -120,6 +120,7 @@ export function renderDevice(el, device) {
     if (seg) seg.addEventListener('click', (e) => {
       const b = e.target.closest('button[data-variant]');
       if (!b) return;
+      if (b.dataset.variant === variant) return; // already selected — nothing to re-render
       variant = b.dataset.variant;
       epoch++;
       seg.querySelectorAll('button').forEach((x) => {
@@ -188,7 +189,6 @@ export function renderDevice(el, device) {
 
   async function renderReleaseNotes() {
     const slot = el.querySelector('#release-slot');
-    slot.innerHTML = '';
     const myEpoch = epoch;
     const repo = repoFor(device, channel, variant);
     try {

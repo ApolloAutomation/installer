@@ -234,6 +234,43 @@ test('release notes follow the selected variant repo (per-variant repos override
     .toHaveAttribute('href', `https://github.com/${overrideRepo}/releases`);
 });
 
+test('clicking the already-selected variant makes no extra release-notes fetch', async ({ page }) => {
+  const d = registry.devices.find((x) => Object.keys(x.firmware.stable).length > 1);
+  test.skip(!d, 'no multi-variant device in registry');
+  let apiCalls = 0;
+  await page.route('https://api.github.com/**', (route) => {
+    apiCalls++;
+    route.fulfill({ json: { name: 'v1.0.0.0', body: 'notes', html_url: 'https://github.com/a/b/releases/tag/v1' } });
+  });
+  await page.goto(`/#/${d.id}`);
+  await expect(page.locator('.release-notes')).toBeVisible(); // initial fetch completed
+  const callsAfterLoad = apiCalls;
+  const active = Object.keys(d.firmware.stable)[0]; // the default/active variant
+  await page.locator(`#variant-seg button[data-variant="${active}"]`).click();
+  await page.waitForTimeout(300);
+  expect(apiCalls).toBe(callsAfterLoad); // no new fetch on same-variant click
+});
+
+test('switching variant never blanks the release-notes box', async ({ page }) => {
+  const d = registry.devices.find((x) => Object.keys(x.firmware.stable).length > 1);
+  test.skip(!d, 'no multi-variant device in registry');
+  await page.route('https://api.github.com/**', (route) =>
+    route.fulfill({ json: { name: 'v1.0.0.0', body: 'notes', html_url: 'https://github.com/a/b/releases/tag/v1' } }));
+  await page.goto(`/#/${d.id}`);
+  await expect(page.locator('.release-notes')).toBeVisible();
+  // Record if #release-slot ever becomes empty during the switch.
+  await page.evaluate(() => {
+    window.__wentEmpty = false;
+    const slot = document.getElementById('release-slot');
+    new MutationObserver(() => { if (slot.innerHTML.trim() === '') window.__wentEmpty = true; })
+      .observe(slot, { childList: true });
+  });
+  const other = Object.keys(d.firmware.stable)[1];
+  await page.locator(`#variant-seg button[data-variant="${other}"]`).click();
+  await page.waitForTimeout(400);
+  expect(await page.evaluate(() => window.__wentEmpty)).toBe(false);
+});
+
 test('header GitHub link and classic-installer links follow the selected variant', async ({ page }) => {
   const d = registry.devices.find((x) => x.installers && x.installers.stable
     && Object.values(x.installers.stable).some((v) => v === null));
