@@ -90,6 +90,34 @@ test('channel/variant toggles rewire the install button', async ({ page }) => {
   }
 });
 
+test('changing variant reuses the install button instead of recreating it', async ({ page }) => {
+  const d = registry.devices.find((x) => Object.keys(x.firmware.stable).length > 1);
+  test.skip(!d, 'no multi-variant device in registry');
+  // Force the WebSerial path (headless Chromium lacks navigator.serial) so the
+  // esp-web-install-button renders.
+  await page.addInitScript(() => {
+    if (!('serial' in navigator)) {
+      Object.defineProperty(navigator, 'serial', { value: {}, configurable: true });
+    }
+  });
+  await page.goto(`/#/${d.id}`);
+
+  // Tag the initially-rendered install button so we can tell if it survives.
+  await page.evaluate(() => {
+    document.querySelector('#install-slot esp-web-install-button').dataset.tag = 'orig';
+  });
+
+  const variants = Object.keys(d.firmware.stable);
+  const other = variants[1];
+  await page.locator(`#variant-seg button[data-variant="${other}"]`).click();
+
+  // Same element must survive (tag intact) with its manifest updated in place.
+  await expect(page.locator('#install-slot esp-web-install-button'))
+    .toHaveAttribute('data-tag', 'orig');
+  await expect(page.locator('#install-slot esp-web-install-button'))
+    .toHaveAttribute('manifest', d.firmware.stable[other]);
+});
+
 test('manual fallback renders when WebSerial is unavailable', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(Navigator.prototype, 'serial', { get: () => undefined });
