@@ -92,6 +92,31 @@ def check_repos_shape(repos, firmware, dev_id):
                 errs.append(f"{dev_id} repos {channel}/{variant}: no such firmware variant")
     return errs
 
+def check_installers_shape(installers, firmware, dev_id):
+    """Validate the optional `installers` map (channel -> variant -> https URL or null).
+
+    Network-free. `installers` absent (None) is valid. A variant value of null
+    means "this variant has no classic installer, hide the link"; any other
+    value must be an https URL. Every variant key must exist in
+    `firmware[channel]`. Returns a list of error strings.
+    """
+    errs = []
+    if installers is None:
+        return errs
+    if not isinstance(installers, dict):
+        errs.append(f"{dev_id} installers: not an object")
+        return errs
+    for channel, variants in installers.items():
+        if not isinstance(variants, dict):
+            errs.append(f"{dev_id} installers {channel}: not an object")
+            continue
+        for variant, url in variants.items():
+            if url is not None and (not isinstance(url, str) or not url.startswith("https://")):
+                errs.append(f"{dev_id} installers {channel}/{variant}: not an https URL or null")
+            if variant not in firmware.get(channel, {}):
+                errs.append(f"{dev_id} installers {channel}/{variant}: no such firmware variant")
+    return errs
+
 def check_manifest(dev_id, channel, variant, murl):
     where = f"{dev_id} {channel}/{variant}"
     try:
@@ -123,6 +148,7 @@ def main():
         config = dev.get("config", {})
         errors.extend(check_config_shape(config, dev["id"]))
         errors.extend(check_repos_shape(dev.get("repos"), dev.get("firmware", {}), dev["id"]))
+        errors.extend(check_installers_shape(dev.get("installers"), dev.get("firmware", {}), dev["id"]))
         if not isinstance(config, dict):
             continue
         for channel, variants in config.items():

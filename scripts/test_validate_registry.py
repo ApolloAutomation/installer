@@ -120,5 +120,36 @@ class ReposShapeChecks(unittest.TestCase):
         self.assertTrue(any("no such firmware variant" in e for e in errs), errs)
 
 
+class InstallersShapeChecks(unittest.TestCase):
+    FW = {"stable": {"v16": "https://x/m.json", "v14": "https://y/m.json"}}
+
+    def test_absent_ok(self):
+        self.assertEqual(vr.check_installers_shape(None, self.FW, "dev"), [])
+
+    def test_null_hide_ok(self):
+        self.assertEqual(vr.check_installers_shape({"stable": {"v16": None}}, self.FW, "dev"), [])
+
+    def test_url_override_ok(self):
+        ins = {"stable": {"v16": "https://apolloautomation.github.io/WLED-M1/"}}
+        self.assertEqual(vr.check_installers_shape(ins, self.FW, "dev"), [])
+
+    def test_not_dict_errors(self):
+        errs = vr.check_installers_shape([], self.FW, "dev")
+        self.assertTrue(any("installers" in e for e in errs), errs)
+
+    def test_channel_not_dict_errors(self):
+        errs = vr.check_installers_shape({"stable": "x"}, self.FW, "dev")
+        self.assertTrue(any("stable" in e for e in errs), errs)
+
+    def test_non_https_non_null_errors(self):
+        for bad in ("http://x", "ftp://x", "not-a-url", 5):
+            errs = vr.check_installers_shape({"stable": {"v16": bad}}, self.FW, "dev")
+            self.assertTrue(any("https URL or null" in e for e in errs), (bad, errs))
+
+    def test_variant_not_in_firmware_errors(self):
+        errs = vr.check_installers_shape({"stable": {"ghost": None}}, self.FW, "dev")
+        self.assertTrue(any("no such firmware variant" in e for e in errs), errs)
+
+
 if __name__ == "__main__":
     unittest.main()
