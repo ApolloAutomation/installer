@@ -214,24 +214,28 @@ test('release notes ignore an off-allowlist API url and use the safe releases hr
 test('release notes follow the selected variant repo (per-variant repos override)', async ({ page }) => {
   const d = registry.devices.find((x) => x.repos && x.repos.stable);
   test.skip(!d, 'no device with a per-variant repos override');
-  const overrideVariant = Object.keys(d.repos.stable)[0];
-  const overrideRepo = d.repos.stable[overrideVariant];
-  const defaultVariant = Object.keys(d.firmware.stable)[0];
-  test.skip(overrideVariant === defaultVariant, 'override is on the default variant');
+  // Works whichever way round the override sits: the default variant may itself be
+  // the overridden one, so compare the first variant against the first one that
+  // resolves to a different repo.
+  const variants = Object.keys(d.firmware.stable);
+  const repoOf = (v) => d.repos.stable[v] || d.repo;
+  const startVariant = variants[0];
+  const otherVariant = variants.find((v) => repoOf(v) !== repoOf(startVariant));
+  test.skip(!otherVariant, 'all variants resolve to the same repo');
 
   // Force the API-failure path so the deterministic .fail-link (built from the
   // resolved repo) is what we assert on.
   await page.route('https://api.github.com/**', (route) => route.fulfill({ status: 403 }));
   await page.goto(`/#/${d.id}`);
 
-  // Default variant resolves to the device-level repo.
+  // Default variant resolves to its own repo (device-level or override).
   await expect(page.locator('.release-notes .fail-link'))
-    .toHaveAttribute('href', `https://github.com/${d.repo}/releases`);
+    .toHaveAttribute('href', `https://github.com/${repoOf(startVariant)}/releases`);
 
-  // Selecting the override variant must re-render release notes against the override repo.
-  await page.locator(`#variant-seg button[data-variant="${overrideVariant}"]`).click();
+  // Selecting a variant with a different repo must re-render release notes against it.
+  await page.locator(`#variant-seg button[data-variant="${otherVariant}"]`).click();
   await expect(page.locator('.release-notes .fail-link'))
-    .toHaveAttribute('href', `https://github.com/${overrideRepo}/releases`);
+    .toHaveAttribute('href', `https://github.com/${repoOf(otherVariant)}/releases`);
 });
 
 test('clicking the already-selected variant makes no extra release-notes fetch', async ({ page }) => {
@@ -275,28 +279,33 @@ test('header GitHub link and classic-installer links follow the selected variant
   const d = registry.devices.find((x) => x.installers && x.installers.stable
     && Object.values(x.installers.stable).some((v) => v === null));
   test.skip(!d, 'no device that hides a classic installer for a variant');
-  const hiddenVariant = Object.keys(d.installers.stable).find((k) => d.installers.stable[k] === null);
-  const defaultVariant = Object.keys(d.firmware.stable)[0];
-  test.skip(hiddenVariant === defaultVariant, 'hidden installer is on the default variant');
-  const overrideRepo = d.repos && d.repos.stable && d.repos.stable[hiddenVariant];
+  // The variant that hides its classic installer may be the default one, so assert
+  // the link toggling in whichever direction the registry happens to order them.
+  const variants = Object.keys(d.firmware.stable);
+  const installerOf = (v) => (v in d.installers.stable
+    ? d.installers.stable[v] : d.githubPagesInstaller);
+  const repoOf = (v) => (d.repos && d.repos.stable && d.repos.stable[v]) || d.repo;
+  const startVariant = variants[0];
+  const otherVariant = variants.find((v) => !installerOf(v) !== !installerOf(startVariant));
+  test.skip(!otherVariant, 'every variant has the same classic-installer visibility');
 
   await page.route('https://api.github.com/**', (route) => route.fulfill({ status: 403 }));
   await page.goto(`/#/${d.id}`);
 
-  // Default variant: header GitHub = device repo, Classic installer link present.
+  // Default variant: header GitHub and Classic installer reflect that variant.
   await expect(page.locator('.links a', { hasText: 'GitHub' }))
-    .toHaveAttribute('href', `https://github.com/${d.repo}`);
-  await expect(page.locator('.links a', { hasText: 'Classic installer' })).toHaveCount(1);
+    .toHaveAttribute('href', `https://github.com/${repoOf(startVariant)}`);
+  await expect(page.locator('.links a', { hasText: 'Classic installer' }))
+    .toHaveCount(installerOf(startVariant) ? 1 : 0);
 
-  // Select the variant whose installer is null.
-  await page.locator(`#variant-seg button[data-variant="${hiddenVariant}"]`).click();
+  // Select the variant on the other side of the null/non-null installer split.
+  await page.locator(`#variant-seg button[data-variant="${otherVariant}"]`).click();
 
-  // Header GitHub link now points at the override repo (if set); Classic installer link is gone.
-  if (overrideRepo) {
-    await expect(page.locator('.links a', { hasText: 'GitHub' }))
-      .toHaveAttribute('href', `https://github.com/${overrideRepo}`);
-  }
-  await expect(page.locator('.links a', { hasText: 'Classic installer' })).toHaveCount(0);
+  // Header GitHub link follows that variant's repo; installer link flips visibility.
+  await expect(page.locator('.links a', { hasText: 'GitHub' }))
+    .toHaveAttribute('href', `https://github.com/${repoOf(otherVariant)}`);
+  await expect(page.locator('.links a', { hasText: 'Classic installer' }))
+    .toHaveCount(installerOf(otherVariant) ? 1 : 0);
 });
 
 test('step 3 shows the Home Assistant hand-off', async ({ page }) => {
