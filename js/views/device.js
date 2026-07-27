@@ -51,9 +51,11 @@ function platformFor(device, channel, variant) {
 function stepThreeHtml(device, platform) {
   if (platform === 'wled') {
     return `
-        <p>If you did not set Wi-Fi during install, join the device's own
-           <strong>WLED-AP</strong> network (password <code>wled1234</code>) and pick your network
-           at <code>4.3.2.1</code>. Once it is on your Wi-Fi, go to
+        <p>If you did not set Wi-Fi during install, join the open
+           <strong>Apollo ${device.name}</strong> Wi-Fi hotspot the device broadcasts (builds before
+           16.0.1 add a serial-number suffix to the name), then open <code>4.3.2.1</code> in a
+           browser and pick your network. On 16.0.1 the panel itself shows a setup card with that
+           address and a QR code. Once it is on your Wi-Fi, go to
            <strong>Settings → Devices &amp; services</strong> in Home Assistant, where it appears as a
            discovered <strong>WLED</strong> device. Click <strong>Configure</strong>, and you're done.
            <span class="done-check">✓</span></p>

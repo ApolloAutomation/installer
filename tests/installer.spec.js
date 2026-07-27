@@ -331,8 +331,11 @@ test('step 3 gives WLED instructions on a WLED device, not ESPHome ones', async 
   await page.goto(`/#/${d.id}`);
   const done = page.locator('#step-done');
   await expect(done).toContainText('discovered');
-  await expect(done).toContainText('WLED-AP');
+  await expect(done).toContainText('4.3.2.1');
   await expect(done).toContainText('Manual OTA Update');
+  // The Apollo builds ship an OPEN hotspot, not the stock WLED-AP/wled1234 pair.
+  await expect(done).not.toContainText('wled1234');
+  await expect(done).not.toContainText('WLED-AP');
   // The ESPHome adoption path does not exist on a WLED device.
   await expect(done).not.toContainText('ESPHome Dashboard');
   await expect(done).not.toContainText('Take control');
@@ -356,15 +359,15 @@ test('step 3 follows a per-variant platform override', async ({ page }) => {
   await page.goto(`/#/${d.id}`);
 
   const done = page.locator('#step-done');
-  await expect(done).toContainText('WLED-AP');
+  await expect(done).toContainText('4.3.2.1');
 
   await page.locator(`#variant-seg button[data-variant="${espVariant}"]`).click();
   await expect(done).toContainText('ESPHome Dashboard');
-  await expect(done).not.toContainText('WLED-AP');
+  await expect(done).not.toContainText('4.3.2.1');
 
   // And back, so the override is not a one-way trip.
   await page.locator(`#variant-seg button[data-variant="${wledVariant}"]`).click();
-  await expect(done).toContainText('WLED-AP');
+  await expect(done).toContainText('4.3.2.1');
 });
 
 function blobFromRaw(raw) {
