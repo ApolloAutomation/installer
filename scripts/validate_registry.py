@@ -117,6 +117,46 @@ def check_installers_shape(installers, firmware, dev_id):
                 errs.append(f"{dev_id} installers {channel}/{variant}: no such firmware variant")
     return errs
 
+PLATFORMS = ("esphome", "wled")
+
+def check_platform(platform, dev_id):
+    """Validate the optional `platform` field (firmware ecosystem).
+
+    Network-free. Absent (None) means esphome, which is what step 3 of the
+    wizard falls back to. Anything outside PLATFORMS would silently render the
+    ESPHome instructions on a device that does not run ESPHome.
+    """
+    if platform is None or platform in PLATFORMS:
+        return []
+    return [f"{dev_id} platform: {platform!r} not one of {', '.join(PLATFORMS)}"]
+
+def check_platforms_shape(platforms, firmware, dev_id):
+    """Validate the optional per-variant `platforms` map (channel -> variant -> platform).
+
+    Network-free. Mirrors `repos`/`installers`: absent (None) is valid, only
+    variants that differ from the device-level `platform` need listing, and every
+    variant key must exist in `firmware[channel]`. Returns a list of errors.
+    """
+    errs = []
+    if platforms is None:
+        return errs
+    if not isinstance(platforms, dict):
+        errs.append(f"{dev_id} platforms: not an object")
+        return errs
+    for channel, variants in platforms.items():
+        if not isinstance(variants, dict):
+            errs.append(f"{dev_id} platforms {channel}: not an object")
+            continue
+        for variant, platform in variants.items():
+            if platform not in PLATFORMS:
+                errs.append(
+                    f"{dev_id} platforms {channel}/{variant}: "
+                    f"{platform!r} not one of {', '.join(PLATFORMS)}"
+                )
+            if variant not in firmware.get(channel, {}):
+                errs.append(f"{dev_id} platforms {channel}/{variant}: no such firmware variant")
+    return errs
+
 def check_manifest(dev_id, channel, variant, murl):
     where = f"{dev_id} {channel}/{variant}"
     try:
@@ -149,6 +189,8 @@ def main():
         errors.extend(check_config_shape(config, dev["id"]))
         errors.extend(check_repos_shape(dev.get("repos"), dev.get("firmware", {}), dev["id"]))
         errors.extend(check_installers_shape(dev.get("installers"), dev.get("firmware", {}), dev["id"]))
+        errors.extend(check_platform(dev.get("platform"), dev["id"]))
+        errors.extend(check_platforms_shape(dev.get("platforms"), dev.get("firmware", {}), dev["id"]))
         if not isinstance(config, dict):
             continue
         for channel, variants in config.items():

@@ -226,6 +226,7 @@
       "image": "images/m-1.jpg",
       "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/M-1_Full_Kit_bd50d749-ee4d-43fd-b2b9-8093d3459388.jpg?v=1754315671",
       "wiki": "https://wiki.apolloautomation.com/products/m1/introduction/",
+      "platform": "wled",
       "repo": "ApolloAutomation/WLED-MM-M1",
       "githubPagesInstaller": "https://apolloautomation.github.io/WLED-MM-M1/",
       "firmware": {

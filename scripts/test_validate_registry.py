@@ -151,5 +151,46 @@ class InstallersShapeChecks(unittest.TestCase):
         self.assertTrue(any("no such firmware variant" in e for e in errs), errs)
 
 
+class PlatformChecks(unittest.TestCase):
+    def test_absent_means_esphome(self):
+        self.assertEqual(vr.check_platform(None, "dev"), [])
+
+    def test_known_platforms_ok(self):
+        for p in ("esphome", "wled"):
+            self.assertEqual(vr.check_platform(p, "dev"), [], p)
+
+    def test_unknown_platform_errors(self):
+        for bad in ("ESPHome", "tasmota", "", 5):
+            errs = vr.check_platform(bad, "dev")
+            self.assertTrue(any("platform" in e for e in errs), (bad, errs))
+
+
+class PlatformsShapeChecks(unittest.TestCase):
+    FW = {"stable": {"v16": "https://x/m.json", "v14": "https://y/m.json"}}
+
+    def test_absent_ok(self):
+        self.assertEqual(vr.check_platforms_shape(None, self.FW, "dev"), [])
+
+    def test_override_ok(self):
+        pf = {"stable": {"v16": "esphome"}}
+        self.assertEqual(vr.check_platforms_shape(pf, self.FW, "dev"), [])
+
+    def test_not_dict_errors(self):
+        errs = vr.check_platforms_shape([], self.FW, "dev")
+        self.assertTrue(any("platforms" in e for e in errs), errs)
+
+    def test_channel_not_dict_errors(self):
+        errs = vr.check_platforms_shape({"stable": "x"}, self.FW, "dev")
+        self.assertTrue(any("stable" in e for e in errs), errs)
+
+    def test_unknown_platform_errors(self):
+        errs = vr.check_platforms_shape({"stable": {"v16": "tasmota"}}, self.FW, "dev")
+        self.assertTrue(any("not one of" in e for e in errs), errs)
+
+    def test_variant_not_in_firmware_errors(self):
+        errs = vr.check_platforms_shape({"stable": {"ghost": "wled"}}, self.FW, "dev")
+        self.assertTrue(any("no such firmware variant" in e for e in errs), errs)
+
+
 if __name__ == "__main__":
     unittest.main()
