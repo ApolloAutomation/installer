@@ -15,7 +15,8 @@ guarantees a factory-fresh 64x64 boot. It is offered for Rev6 only, so Rev4 owne
 to the WLED-MM 14.5.1 (Rev4) variant.
 
 The M-1 entry sets `"platform": "wled"`, so step 3 of the wizard gives the WLED onboarding
-(WLED-AP fallback, discovered WLED integration, WLED web UI for effects and manual OTA) instead
+(open Apollo M-1 hotspot at 4.3.2.1, discovered WLED integration, WLED web UI for effects and
+manual OTA) instead
 of the ESPHome Dashboard "Take control" flow. The hardware can run ESPHome, we just do not offer
 an ESPHome build yet. When we do, add that manifest as another variant and mark it in a
 `platforms` map (`"platforms": { "stable": { "<variant>": "esphome" } }`); step 3 then switches
@@ -32,3 +33,12 @@ Hosting: WLED-MM-M1 serves the 14.5.1 manifests from committed files via legacy 
 WLED-M1 serves the 16.0.1 manifest through an Actions Pages workflow
 (.github/workflows/apollo-pages.yml) that publishes manifest.json plus M-1_full_install.bin
 from the latest GitHub release, so the 16MB image never enters git history.
+
+## Setup hotspot (verified against the shipped images, not WLED defaults)
+
+Both the 16.0.1 and 14.5.1 Apollo builds broadcast an **open** hotspot, not the stock WLED
+`WLED-AP` / `wled1234` pair. The string `wled1234` is absent from `M-1_full_install.bin` and from
+`Apollo_M-1_Rev6_14.5.1.bin`, while the sibling default `wledota` is present in both, so `apPass`
+is empty. The m1-b8 release notes state it directly: "STEP 1: join the open Apollo M-1 WiFi", and
+list "cleaner hotspot name: the setup WiFi is now just Apollo M-1 (no serial-number suffix)" as new
+in that build, which is why step 3 says older builds carry a suffix. Setup address is 4.3.2.1.
