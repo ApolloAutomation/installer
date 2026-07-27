@@ -14,6 +14,13 @@ Its manifest sets new_install_prompt_erase, so esp-web-tools prompts a full eras
 guarantees a factory-fresh 64x64 boot. It is offered for Rev6 only, so Rev4 owners must switch
 to the WLED-MM 14.5.1 (Rev4) variant.
 
+The M-1 entry sets `"platform": "wled"`, so step 3 of the wizard gives the WLED onboarding
+(WLED-AP fallback, discovered WLED integration, WLED web UI for effects and manual OTA) instead
+of the ESPHome Dashboard "Take control" flow. The hardware can run ESPHome, we just do not offer
+an ESPHome build yet. When we do, add that manifest as another variant and mark it in a
+`platforms` map (`"platforms": { "stable": { "<variant>": "esphome" } }`); step 3 then switches
+back to the ESPHome instructions whenever that variant is selected, and stays WLED for the rest.
+
 Because the default variant has no classic installer page of its own, the M-1 page now loads with
 the "Classic installer" link hidden and the header GitHub link pointing at WLED-M1; both come
 back when a 14.5.1 variant is selected.

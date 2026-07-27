@@ -35,6 +35,52 @@ function classicInstallerFor(device, channel, variant) {
   return map && variant in map ? map[variant] : device.githubPagesInstaller;
 }
 
+// Firmware ecosystem for a variant. Mirrors `repos`/`installers`: an optional
+// per-variant `platforms` map wins, then the device-level `platform`, then
+// esphome. A device offering both WLED and ESPHome builds (the M-1 could) marks
+// only the variants that differ from its device-level default.
+function platformFor(device, channel, variant) {
+  const map = device.platforms && device.platforms[channel];
+  if (map && variant in map) return map[variant];
+  return device.platform || 'esphome';
+}
+
+// Step 3 differs by ecosystem: ESPHome devices are adopted through the ESPHome
+// integration and dashboard, WLED devices through the WLED integration and the
+// WLED web UI.
+function stepThreeHtml(device, platform) {
+  if (platform === 'wled') {
+    return `
+        <p>If you did not set Wi-Fi during install, join the device's own
+           <strong>WLED-AP</strong> network (password <code>wled1234</code>) and pick your network
+           at <code>4.3.2.1</code>. Once it is on your Wi-Fi, go to
+           <strong>Settings → Devices &amp; services</strong> in Home Assistant, where it appears as a
+           discovered <strong>WLED</strong> device. Click <strong>Configure</strong>, and you're done.
+           <span class="done-check">✓</span></p>
+        <details class="customize">
+          <summary>Want to customize the firmware?</summary>
+          <p>The ${device.name} runs WLED, so effects and settings are customized in WLED itself.
+             Open its web UI at the device's IP address (or <code>http://wled.local</code>),
+             or use the WLED mobile app, to change effects, colors, presets and segments.
+             Later firmware updates install from that UI under
+             <strong>Config → Security &amp; Updates → Manual OTA Update</strong> using the
+             <code>_ota.bin</code> asset from the latest release.</p>
+        </details>`;
+  }
+  return `
+        <p>After installing, the device broadcasts itself on your network.
+           In Home Assistant go to <strong>Settings → Devices &amp; services</strong> — it appears as a
+           discovered <strong>ESPHome</strong> device. Click <strong>Configure</strong>, and you're done.
+           <span class="done-check">✓</span></p>
+        <details class="customize">
+          <summary>Want to customize the firmware?</summary>
+          <p>Apollo firmware ships with <code>dashboard_import</code>, so the device also shows up in the
+             <strong>ESPHome Dashboard</strong> (or the ESPHome add-on in Home Assistant) under
+             <strong>Discovered</strong>. Click <strong>Take control</strong> to pull its configuration
+             into the dashboard, then edit it and flash updates over Wi-Fi.</p>
+        </details>`;
+}
+
 function segHtml(id, label, keys, active, dataAttr) {
   if (keys.length < 2) return '';
   return `
@@ -84,17 +130,7 @@ export function renderDevice(el, device) {
 
       <section class="step" id="step-done">
         <h2><span class="num">3</span> Add to Home Assistant</h2>
-        <p>After installing, the device broadcasts itself on your network.
-           In Home Assistant go to <strong>Settings → Devices &amp; services</strong> — it appears as a
-           discovered <strong>ESPHome</strong> device. Click <strong>Configure</strong>, and you're done.
-           <span class="done-check">✓</span></p>
-        <details class="customize">
-          <summary>Want to customize the firmware?</summary>
-          <p>Apollo firmware ships with <code>dashboard_import</code>, so the device also shows up in the
-             <strong>ESPHome Dashboard</strong> (or the ESPHome add-on in Home Assistant) under
-             <strong>Discovered</strong>. Click <strong>Take control</strong> to pull its configuration
-             into the dashboard, then edit it and flash updates over Wi-Fi.</p>
-        </details>
+        <div id="step3-slot"></div>
         <p><a href="${device.wiki}">Full ${device.name} setup guide on the wiki →</a></p>
       </section>
     </div>`;
@@ -102,6 +138,11 @@ export function renderDevice(el, device) {
   const variantSlot = el.querySelector('#variant-slot');
   const installSlot = el.querySelector('#install-slot');
   const linksSlot = el.querySelector('#links-slot');
+  const stepThreeSlot = el.querySelector('#step3-slot');
+
+  function renderStepThree() {
+    stepThreeSlot.innerHTML = stepThreeHtml(device, platformFor(device, channel, variant));
+  }
 
   function renderLinks() {
     const repo = repoFor(device, channel, variant);
@@ -132,6 +173,7 @@ export function renderDevice(el, device) {
       renderConfig();
       renderReleaseNotes();
       renderLinks();
+      renderStepThree();
     });
   }
 
@@ -264,6 +306,7 @@ export function renderDevice(el, device) {
     renderReleaseNotes();
     renderConfig();
     renderLinks();
+    renderStepThree();
   });
 
   renderVariantSeg();
@@ -271,4 +314,5 @@ export function renderDevice(el, device) {
   renderReleaseNotes();
   renderConfig();
   renderLinks();
+  renderStepThree();
 }

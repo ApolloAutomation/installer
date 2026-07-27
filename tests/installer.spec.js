@@ -316,12 +316,55 @@ test('step 3 shows the Home Assistant hand-off', async ({ page }) => {
 });
 
 test('step 3 explains taking control in the ESPHome Dashboard', async ({ page }) => {
-  const d = registry.devices[0];
+  const d = registry.devices.find((x) => !x.platform || x.platform === 'esphome');
+  test.skip(!d, 'no esphome device in registry');
   await page.goto(`/#/${d.id}`);
   const done = page.locator('#step-done');
   await expect(done).toContainText('ESPHome Dashboard');
   await expect(done).toContainText('Take control');
   await expect(done.locator('code')).toContainText('dashboard_import');
+});
+
+test('step 3 gives WLED instructions on a WLED device, not ESPHome ones', async ({ page }) => {
+  const d = registry.devices.find((x) => x.platform === 'wled');
+  test.skip(!d, 'no wled device in registry');
+  await page.goto(`/#/${d.id}`);
+  const done = page.locator('#step-done');
+  await expect(done).toContainText('discovered');
+  await expect(done).toContainText('WLED-AP');
+  await expect(done).toContainText('Manual OTA Update');
+  // The ESPHome adoption path does not exist on a WLED device.
+  await expect(done).not.toContainText('ESPHome Dashboard');
+  await expect(done).not.toContainText('Take control');
+  await expect(done).not.toContainText('dashboard_import');
+});
+
+test('step 3 follows a per-variant platform override', async ({ page }) => {
+  // No shipping device mixes ecosystems yet, so synthesize one: the M-1 hardware
+  // can run ESPHome, and when such a build is offered the registry only needs a
+  // `platforms` entry for that variant.
+  const src = registry.devices.find((x) => x.platform === 'wled');
+  test.skip(!src, 'no wled device in registry');
+  const d = JSON.parse(JSON.stringify(src));
+  const wledVariant = Object.keys(d.firmware.stable)[0];
+  const espVariant = 'ESPHome (test)';
+  d.firmware.stable[espVariant] = d.firmware.stable[wledVariant];
+  d.platforms = { stable: { [espVariant]: 'esphome' } };
+
+  await page.route('**/devices.json', (route) => route.fulfill({ json: { devices: [d] } }));
+  await page.route('https://api.github.com/**', (route) => route.fulfill({ status: 403 }));
+  await page.goto(`/#/${d.id}`);
+
+  const done = page.locator('#step-done');
+  await expect(done).toContainText('WLED-AP');
+
+  await page.locator(`#variant-seg button[data-variant="${espVariant}"]`).click();
+  await expect(done).toContainText('ESPHome Dashboard');
+  await expect(done).not.toContainText('WLED-AP');
+
+  // And back, so the override is not a one-way trip.
+  await page.locator(`#variant-seg button[data-variant="${wledVariant}"]`).click();
+  await expect(done).toContainText('WLED-AP');
 });
 
 function blobFromRaw(raw) {
