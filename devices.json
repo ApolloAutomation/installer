@@ -253,7 +253,7 @@
       "category": "Ornament",
       "description": "Holiday ornament, 2024 edition",
       "image": "images/h-1.jpg",
-      "imageSource": "https://wiki.apolloautomation.com/assets/apollo-h-1.jpg",
+      "imageSource": "https://wiki.apolloautomation.com/assets/h-1-usa.png",
       "wiki": "https://wiki.apolloautomation.com/products/h1/introduction/",
       "repo": "ApolloAutomation/H-1",
       "githubPagesInstaller": "https://apolloautomation.github.io/H-1/",
