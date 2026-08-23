@@ -308,6 +308,18 @@ test('header GitHub link and classic-installer links follow the selected variant
     .toHaveCount(installerOf(otherVariant) ? 1 : 0);
 });
 
+test('variant note follows the selected variant', async ({ page }) => {
+  const d = registry.devices.find((x) => x.variantNotes && x.variantNotes.stable
+    && Object.keys(x.variantNotes.stable).length > 1);
+  test.skip(!d, 'no device with notes on more than one variant');
+  const [first, second] = Object.keys(d.firmware.stable);
+  await page.goto(`/#/${d.id}`);
+  const note = page.locator('.variant-note');
+  await expect(note).toHaveText(d.variantNotes.stable[first]);
+  await page.locator(`#variant-seg button[data-variant="${second}"]`).click();
+  await expect(note).toHaveText(d.variantNotes.stable[second]);
+});
+
 test('step 3 shows the Home Assistant hand-off', async ({ page }) => {
   const d = registry.devices[0];
   await page.goto(`/#/${d.id}`);
@@ -315,12 +327,12 @@ test('step 3 shows the Home Assistant hand-off', async ({ page }) => {
   await expect(page.locator(`#step-done a[href="${d.wiki}"]`)).toBeVisible();
 });
 
-test('step 3 explains taking control in the ESPHome Dashboard', async ({ page }) => {
+test('step 3 explains taking control in the ESPHome Device Builder', async ({ page }) => {
   const d = registry.devices.find((x) => !x.platform || x.platform === 'esphome');
   test.skip(!d, 'no esphome device in registry');
   await page.goto(`/#/${d.id}`);
   const done = page.locator('#step-done');
-  await expect(done).toContainText('ESPHome Dashboard');
+  await expect(done).toContainText('ESPHome Device Builder');
   await expect(done).toContainText('Take control');
   await expect(done.locator('code')).toContainText('dashboard_import');
 });
@@ -337,7 +349,7 @@ test('step 3 gives WLED instructions on a WLED device, not ESPHome ones', async 
   await expect(done).not.toContainText('wled1234');
   await expect(done).not.toContainText('WLED-AP');
   // The ESPHome adoption path does not exist on a WLED device.
-  await expect(done).not.toContainText('ESPHome Dashboard');
+  await expect(done).not.toContainText('ESPHome Device Builder');
   await expect(done).not.toContainText('Take control');
   await expect(done).not.toContainText('dashboard_import');
 });
@@ -362,7 +374,7 @@ test('step 3 follows a per-variant platform override', async ({ page }) => {
   await expect(done).toContainText('4.3.2.1');
 
   await page.locator(`#variant-seg button[data-variant="${espVariant}"]`).click();
-  await expect(done).toContainText('ESPHome Dashboard');
+  await expect(done).toContainText('ESPHome Device Builder');
   await expect(done).not.toContainText('4.3.2.1');
 
   // And back, so the override is not a one-way trip.

@@ -151,6 +151,34 @@ class InstallersShapeChecks(unittest.TestCase):
         self.assertTrue(any("no such firmware variant" in e for e in errs), errs)
 
 
+class VariantNotesShapeChecks(unittest.TestCase):
+    FW = {"stable": {"Smart (Wi-Fi)": "https://x/m.json", "Basic (No Wi-Fi)": "https://y/m.json"}}
+
+    def test_absent_ok(self):
+        self.assertEqual(vr.check_variant_notes_shape(None, self.FW, "dev"), [])
+
+    def test_text_ok(self):
+        notes = {"stable": {"Smart (Wi-Fi)": "Joins your Wi-Fi."}}
+        self.assertEqual(vr.check_variant_notes_shape(notes, self.FW, "dev"), [])
+
+    def test_not_dict_errors(self):
+        errs = vr.check_variant_notes_shape([], self.FW, "dev")
+        self.assertTrue(any("variantNotes" in e for e in errs), errs)
+
+    def test_channel_not_dict_errors(self):
+        errs = vr.check_variant_notes_shape({"stable": "x"}, self.FW, "dev")
+        self.assertTrue(any("stable" in e for e in errs), errs)
+
+    def test_empty_or_non_string_errors(self):
+        for bad in ("", "   ", None, 5):
+            errs = vr.check_variant_notes_shape({"stable": {"Smart (Wi-Fi)": bad}}, self.FW, "dev")
+            self.assertTrue(any("non-empty string" in e for e in errs), (bad, errs))
+
+    def test_variant_not_in_firmware_errors(self):
+        errs = vr.check_variant_notes_shape({"stable": {"ghost": "text"}}, self.FW, "dev")
+        self.assertTrue(any("no such firmware variant" in e for e in errs), errs)
+
+
 class PlatformChecks(unittest.TestCase):
     def test_absent_means_esphome(self):
         self.assertEqual(vr.check_platform(None, "dev"), [])
