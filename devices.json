@@ -246,6 +246,50 @@
           "WLED 16.0.1 (Rev6 only)": null
         }
       }
+    },
+    {
+      "id": "h-1",
+      "name": "H-1",
+      "category": "Ornament",
+      "description": "Holiday ornament, 2024 edition",
+      "image": "images/h-1.jpg",
+      "imageSource": "https://wiki.apolloautomation.com/assets/h-1-usa.png",
+      "wiki": "https://wiki.apolloautomation.com/products/h1/introduction/",
+      "repo": "ApolloAutomation/H-1",
+      "githubPagesInstaller": "https://apolloautomation.github.io/H-1/",
+      "firmware": {
+        "stable": {
+          "Smart": "https://apolloautomation.github.io/H-1/firmware/manifest.json"
+        }
+      },
+      "config": {
+        "stable": {
+          "Smart": "https://raw.githubusercontent.com/ApolloAutomation/H-1/main/Integrations/ESPHome/H-1.yaml"
+        }
+      }
+    },
+    {
+      "id": "h-2",
+      "name": "H-2",
+      "category": "Ornament",
+      "description": "Holiday ornament, 2025 edition",
+      "image": "images/h-2.jpg",
+      "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/Apollo_H-2_Red_and_Green_HA_and_E.jpg?v=1764717088",
+      "wiki": "https://wiki.apolloautomation.com/products/h2/introduction/",
+      "repo": "ApolloAutomation/H-2",
+      "githubPagesInstaller": "https://apolloautomation.github.io/H-2/",
+      "firmware": {
+        "stable": {
+          "Smart": "https://apolloautomation.github.io/H-2/firmware/manifest.json",
+          "Basic": "https://apolloautomation.github.io/H-2/firmware-d/manifest.json"
+        }
+      },
+      "config": {
+        "stable": {
+          "Smart": "https://raw.githubusercontent.com/ApolloAutomation/H-2/main/Integrations/ESPHome/H-2.yaml",
+          "Basic": "https://raw.githubusercontent.com/ApolloAutomation/H-2/main/Integrations/ESPHome/H-2D.yaml"
+        }
+      }
     }
   ]
 }
