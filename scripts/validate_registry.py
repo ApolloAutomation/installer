@@ -117,6 +117,30 @@ def check_installers_shape(installers, firmware, dev_id):
                 errs.append(f"{dev_id} installers {channel}/{variant}: no such firmware variant")
     return errs
 
+def check_variant_notes_shape(notes, firmware, dev_id):
+    """Validate the optional `variantNotes` map (channel -> variant -> text).
+
+    Network-free. `notes` absent (None) is valid. Every value must be a
+    non-empty string and every variant key must exist in `firmware[channel]`.
+    Returns a list of error strings.
+    """
+    errs = []
+    if notes is None:
+        return errs
+    if not isinstance(notes, dict):
+        errs.append(f"{dev_id} variantNotes: not an object")
+        return errs
+    for channel, variants in notes.items():
+        if not isinstance(variants, dict):
+            errs.append(f"{dev_id} variantNotes {channel}: not an object")
+            continue
+        for variant, text in variants.items():
+            if not isinstance(text, str) or not text.strip():
+                errs.append(f"{dev_id} variantNotes {channel}/{variant}: not a non-empty string")
+            if variant not in firmware.get(channel, {}):
+                errs.append(f"{dev_id} variantNotes {channel}/{variant}: no such firmware variant")
+    return errs
+
 PLATFORMS = ("esphome", "wled")
 
 def check_platform(platform, dev_id):
@@ -188,6 +212,7 @@ def main():
         config = dev.get("config", {})
         errors.extend(check_config_shape(config, dev["id"]))
         errors.extend(check_repos_shape(dev.get("repos"), dev.get("firmware", {}), dev["id"]))
+        errors.extend(check_variant_notes_shape(dev.get("variantNotes"), dev.get("firmware", {}), dev["id"]))
         errors.extend(check_installers_shape(dev.get("installers"), dev.get("firmware", {}), dev["id"]))
         errors.extend(check_platform(dev.get("platform"), dev["id"]))
         errors.extend(check_platforms_shape(dev.get("platforms"), dev.get("firmware", {}), dev["id"]))

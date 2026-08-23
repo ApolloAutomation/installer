@@ -259,12 +259,17 @@
       "githubPagesInstaller": "https://apolloautomation.github.io/H-1/",
       "firmware": {
         "stable": {
-          "Smart": "https://apolloautomation.github.io/H-1/firmware/manifest.json"
+          "Smart (Wi-Fi)": "https://apolloautomation.github.io/H-1/firmware/manifest.json"
         }
       },
       "config": {
         "stable": {
-          "Smart": "https://raw.githubusercontent.com/ApolloAutomation/H-1/main/Integrations/ESPHome/H-1.yaml"
+          "Smart (Wi-Fi)": "https://raw.githubusercontent.com/ApolloAutomation/H-1/main/Integrations/ESPHome/H-1.yaml"
+        }
+      },
+      "variantNotes": {
+        "stable": {
+          "Smart (Wi-Fi)": "Joins your Wi-Fi and Home Assistant: change songs and LED effects, run automations, use it as a Bluetooth proxy. Sleeps between button presses to save battery."
         }
       }
     },
@@ -280,14 +285,20 @@
       "githubPagesInstaller": "https://apolloautomation.github.io/H-2/",
       "firmware": {
         "stable": {
-          "Smart": "https://apolloautomation.github.io/H-2/firmware/manifest.json",
-          "Basic": "https://apolloautomation.github.io/H-2/firmware-d/manifest.json"
+          "Smart (Wi-Fi)": "https://apolloautomation.github.io/H-2/firmware/manifest.json",
+          "Basic (No Wi-Fi)": "https://apolloautomation.github.io/H-2/firmware-d/manifest.json"
         }
       },
       "config": {
         "stable": {
-          "Smart": "https://raw.githubusercontent.com/ApolloAutomation/H-2/main/Integrations/ESPHome/H-2.yaml",
-          "Basic": "https://raw.githubusercontent.com/ApolloAutomation/H-2/main/Integrations/ESPHome/H-2D.yaml"
+          "Smart (Wi-Fi)": "https://raw.githubusercontent.com/ApolloAutomation/H-2/main/Integrations/ESPHome/H-2.yaml",
+          "Basic (No Wi-Fi)": "https://raw.githubusercontent.com/ApolloAutomation/H-2/main/Integrations/ESPHome/H-2D.yaml"
+        }
+      },
+      "variantNotes": {
+        "stable": {
+          "Smart (Wi-Fi)": "Joins your Wi-Fi and Home Assistant: change songs and LED effects, run automations, use it as a Bluetooth proxy. Sleeps between button presses to save battery.",
+          "Basic (No Wi-Fi)": "The firmware the ornament ships with. No Wi-Fi or Home Assistant; the buttons play the built-in tunes. Install this to put the ornament back to stock."
         }
       }
     }

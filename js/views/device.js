@@ -39,6 +39,14 @@ function classicInstallerFor(device, channel, variant) {
 // per-variant `platforms` map wins, then the device-level `platform`, then
 // esphome. A device offering both WLED and ESPHome builds (the M-1 could) marks
 // only the variants that differ from its device-level default.
+// Optional per-variant explanation shown under the variant toggle, same
+// `channel -> variant -> text` shape as `repos`/`installers`. Registry content,
+// so it is trusted HTML like `description`.
+function variantNoteFor(device, channel, variant) {
+  const map = device.variantNotes && device.variantNotes[channel];
+  return (map && map[variant]) || '';
+}
+
 function platformFor(device, channel, variant) {
   const map = device.platforms && device.platforms[channel];
   if (map && variant in map) return map[variant];
@@ -46,7 +54,7 @@ function platformFor(device, channel, variant) {
 }
 
 // Step 3 differs by ecosystem: ESPHome devices are adopted through the ESPHome
-// integration and dashboard, WLED devices through the WLED integration and the
+// integration and Device Builder, WLED devices through the WLED integration and the
 // WLED web UI.
 function stepThreeHtml(device, platform) {
   if (platform === 'wled') {
@@ -77,9 +85,9 @@ function stepThreeHtml(device, platform) {
         <details class="customize">
           <summary>Want to customize the firmware?</summary>
           <p>Apollo firmware ships with <code>dashboard_import</code>, so the device also shows up in the
-             <strong>ESPHome Dashboard</strong> (or the ESPHome add-on in Home Assistant) under
+             <strong>ESPHome Device Builder</strong> (or the ESPHome Device Builder app in Home Assistant) under
              <strong>Discovered</strong>. Click <strong>Take control</strong> to pull its configuration
-             into the dashboard, then edit it and flash updates over Wi-Fi.</p>
+             into the Device Builder, then edit it and flash updates over Wi-Fi.</p>
         </details>`;
 }
 
@@ -119,6 +127,7 @@ export function renderDevice(el, device) {
           ${segHtml('channel-seg', 'Channel', channels, channel, 'channel')}
           <div id="variant-slot"></div>
         </div>
+        <div id="variant-note-slot"></div>
         ${channels.length < 2 && Object.keys(device.firmware[channel]).length < 2
           ? '<p style="color:var(--dim);margin:0 0 4px;">One firmware for this device — nothing to choose here.</p>' : ''}
         <div id="release-slot"></div>
@@ -138,6 +147,7 @@ export function renderDevice(el, device) {
     </div>`;
 
   const variantSlot = el.querySelector('#variant-slot');
+  const noteSlot = el.querySelector('#variant-note-slot');
   const installSlot = el.querySelector('#install-slot');
   const linksSlot = el.querySelector('#links-slot');
   const stepThreeSlot = el.querySelector('#step3-slot');
@@ -157,8 +167,14 @@ export function renderDevice(el, device) {
     linksSlot.innerHTML = parts.join(' · ');
   }
 
+  function renderVariantNote() {
+    const note = variantNoteFor(device, channel, variant);
+    noteSlot.innerHTML = note ? `<p class="variant-note">${note}</p>` : '';
+  }
+
   function renderVariantSeg() {
     variantSlot.innerHTML = segHtml('variant-seg', 'Variant', Object.keys(device.firmware[channel]), variant, 'variant');
+    renderVariantNote();
     const seg = variantSlot.querySelector('#variant-seg');
     if (seg) seg.addEventListener('click', (e) => {
       const b = e.target.closest('button[data-variant]');
@@ -171,6 +187,7 @@ export function renderDevice(el, device) {
         x.classList.toggle('active', on);
         x.setAttribute('aria-pressed', String(on));
       });
+      renderVariantNote();
       renderInstall();
       renderConfig();
       renderReleaseNotes();
