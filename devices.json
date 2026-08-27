@@ -160,19 +160,17 @@
       "description": "Audio casting device",
       "image": "images/cast-1.jpg",
       "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/20260611_100839.jpg?v=1781188174",
-      "wiki": "https://wiki.apolloautomation.com/",
+      "wiki": "https://wiki.apolloautomation.com/products/cast1/introduction/",
       "repo": "ApolloAutomation/CAST-1",
       "githubPagesInstaller": "https://apolloautomation.github.io/CAST-1/",
       "firmware": {
         "stable": {
-          "WiFi": "https://apolloautomation.github.io/CAST-1/firmware-w/manifest.json",
-          "Ethernet": "https://apolloautomation.github.io/CAST-1/firmware-e/manifest.json"
+          "Standard": "https://apolloautomation.github.io/CAST-1/firmware/manifest.json"
         }
       },
       "config": {
         "stable": {
-          "WiFi": "https://raw.githubusercontent.com/ApolloAutomation/CAST-1/main/Integrations/ESPHome/CAST-1_W.yaml",
-          "Ethernet": "https://raw.githubusercontent.com/ApolloAutomation/CAST-1/main/Integrations/ESPHome/CAST-1_ETH.yaml"
+          "Standard": "https://raw.githubusercontent.com/ApolloAutomation/CAST-1/main/Integrations/ESPHome/CAST-1.yaml"
         }
       }
     },
