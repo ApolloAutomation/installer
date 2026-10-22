@@ -1,5 +1,11 @@
 # Apollo Web Installer — Design
 
+> **Historical.** This is the original design. For current behavior see AGENTS.md, CONTRIBUTING.md
+> and the code. Since then: Firefox flashes too (it ships WebSerial), TEMP_PRO-1 is in the
+> registry, the first-install build is whichever one the product repo's classic installer flashes
+> (often `firmware-factory/`, not `firmware/`), and `apolloautomation.github.io/installer/` now
+> redirects to production, so it is no longer a staging URL.
+
 Date: 2026-07-08
 Status: Approved by Brandon (direction: A+B hybrid — Fleet Grid hub + per-device mini-wizard)
 

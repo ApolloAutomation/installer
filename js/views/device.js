@@ -10,6 +10,12 @@ function rawToBlob(raw) {
   const m = raw.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/);
   return m ? `https://github.com/${m[1]}/${m[2]}/blob/${m[3]}/${m[4]}` : raw;
 }
+// The folder a raw config lives in, as a GitHub tree link. Configs !include their
+// sibling files (Core.yaml and friends), so a rebuild needs the whole folder.
+function rawToTree(raw) {
+  const m = raw.match(/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)\/[^/]+$/);
+  return m ? `https://github.com/${m[1]}/${m[2]}/tree/${m[3]}/${m[4]}` : rawToBlob(raw);
+}
 function configBasename(url) {
   return (url.split('/').pop() || 'config.yaml').replace(/[^\w.\-]/g, '_');
 }
@@ -20,6 +26,40 @@ function downloadText(text, filename) {
   a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function fileName(url) {
+  const last = url.pathname.split('/').pop();
+  try { return decodeURIComponent(last); } catch { return last; }
+}
+
+// Manifests are read by the release-notes check and by the no-WebSerial file
+// list. One request per URL for the page session; a failure is evicted so a
+// later render can retry.
+const manifests = new Map();
+function fetchManifest(url) {
+  if (!manifests.has(url)) {
+    const p = fetch(url).then((res) => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    });
+    p.catch(() => manifests.delete(url));
+    manifests.set(url, p);
+  }
+  return manifests.get(url);
+}
+
+// Release notes describe the flashed build only if the release is tagged with the
+// manifest's version or names it (WLED-M1 tags bundles like m1-b8 but its notes
+// say "v16.0.1"). Otherwise "What's new" would show some other build's notes.
+// URLs are ignored: GitHub's "Full Changelog" compare link names the previous
+// version, and 16.0.1 must not match 16.0.10 or 16.0.1-beta.
+function releaseMatches(rel, version) {
+  if (!version) return true;
+  const v = String(version);
+  if (rel.tag === v || rel.tag === `v${v}`) return true;
+  const e = v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(^|[^\\w.])v?${e}(?![.-]?\\w|\\.\\.)`);
+  return re.test(`${rel.name}\n${rel.body}`.replace(/https?:\/\/\S+/g, ''));
 }
 
 function selectedManifest(device, channel, variant) {
@@ -35,10 +75,6 @@ function classicInstallerFor(device, channel, variant) {
   return map && variant in map ? map[variant] : device.githubPagesInstaller;
 }
 
-// Firmware ecosystem for a variant. Mirrors `repos`/`installers`: an optional
-// per-variant `platforms` map wins, then the device-level `platform`, then
-// esphome. A device offering both WLED and ESPHome builds (the M-1 could) marks
-// only the variants that differ from its device-level default.
 // Optional per-variant explanation shown under the variant toggle, same
 // `channel -> variant -> text` shape as `repos`/`installers`. Registry content,
 // so it is trusted HTML like `description`.
@@ -47,37 +83,51 @@ function variantNoteFor(device, channel, variant) {
   return (map && map[variant]) || '';
 }
 
+// Firmware ecosystem for a variant. Mirrors `repos`/`installers`: an optional
+// per-variant `platforms` map wins, then the device-level `platform`, then
+// esphome. A device offering both WLED and ESPHome builds (the M-1 could) marks
+// only the variants that differ from its device-level default.
 function platformFor(device, channel, variant) {
   const map = device.platforms && device.platforms[channel];
   if (map && variant in map) return map[variant];
   return device.platform || 'esphome';
 }
 
-// Step 3 differs by ecosystem: ESPHome devices are adopted through the ESPHome
-// integration and Device Builder, WLED devices through the WLED integration and the
-// WLED web UI.
+// Step 3 differs by what the firmware does once installed: ESPHome devices are
+// adopted through the ESPHome integration and Device Builder, WLED devices through
+// the WLED integration and the WLED web UI, and standalone builds (no network at
+// all, like the ornaments' stock firmware) have nothing to add.
 function stepThreeHtml(device, platform) {
-  if (platform === 'wled') {
+  if (platform === 'standalone') {
     return `
+        <h2><span class="num">3</span> You're done</h2>
+        <p>This firmware doesn't use Wi-Fi, so there's nothing to add to Home Assistant.
+           Unplug the ${device.name} from the computer and restart it: if it has batteries in,
+           take one out for a few seconds. After that it works on its own. To use it with
+           Home Assistant later, come back and install a Wi-Fi firmware.
+           <span class="done-check">✓</span></p>`;
+  }
+  const heading = '<h2><span class="num">3</span> Add to Home Assistant</h2>';
+  if (platform === 'wled') {
+    return heading + `
         <p>If you did not set Wi-Fi during install, join the open
-           <strong>Apollo ${device.name}</strong> Wi-Fi hotspot the device broadcasts (builds before
-           16.0.1 add a serial-number suffix to the name), then open <code>4.3.2.1</code> in a
-           browser and pick your network. On 16.0.1 the panel itself shows a setup card with that
-           address and a QR code. Once it is on your Wi-Fi, go to
+           <strong>Apollo ${device.name}</strong> Wi-Fi hotspot the device broadcasts, then open
+           <code>4.3.2.1</code> in a browser and pick your network. On 16.0.1 the panel itself
+           shows a setup card with that address and a QR code. Once it is on your Wi-Fi, go to
            <strong>Settings → Devices &amp; services</strong> in Home Assistant, where it appears as a
            discovered <strong>WLED</strong> device. Click <strong>Configure</strong>, and you're done.
            <span class="done-check">✓</span></p>
         <details class="customize">
           <summary>Want to customize the firmware?</summary>
           <p>The ${device.name} runs WLED, so effects and settings are customized in WLED itself.
-             Open its web UI at the device's IP address (or <code>http://wled.local</code>),
-             or use the WLED mobile app, to change effects, colors, presets and segments.
-             Later firmware updates install from that UI under
-             <strong>Config → Security &amp; Updates → Manual OTA Update</strong> using the
-             <code>_ota.bin</code> asset from the latest release.</p>
+             Open its web UI at the device's IP address, or use the WLED mobile app, to change
+             effects, colors, presets and segments. Firmware updates install from that UI under
+             <strong>Config → Security &amp; Updates → Manual OTA Update</strong>. Only use an
+             update file built for your firmware and board revision; check the setup guide
+             before updating.</p>
         </details>`;
   }
-  return `
+  return heading + `
         <p>After installing, the device broadcasts itself on your network.
            In Home Assistant go to <strong>Settings → Devices &amp; services</strong> — it appears as a
            discovered <strong>ESPHome</strong> device. Click <strong>Configure</strong>, and you're done.
@@ -87,7 +137,7 @@ function stepThreeHtml(device, platform) {
           <p>Apollo firmware ships with <code>dashboard_import</code>, so the device also shows up in the
              <strong>ESPHome Device Builder</strong> (or the ESPHome Device Builder app in Home Assistant) under
              <strong>Discovered</strong>. Click <strong>Take control</strong> to pull its configuration
-             into the Device Builder, then edit it and flash updates over Wi-Fi.</p>
+             into the Device Builder, then edit it and flash updates over the network.</p>
         </details>`;
 }
 
@@ -95,8 +145,8 @@ function segHtml(id, label, keys, active, dataAttr) {
   if (keys.length < 2) return '';
   return `
     <div class="group">
-      <label>${label}</label>
-      <span class="seg" id="${id}">
+      <span class="seg-label" id="${id}-label">${label}</span>
+      <span class="seg" id="${id}" role="group" aria-labelledby="${id}-label">
         ${keys.map((k) => `<button data-${dataAttr}="${k}" class="${k === active ? 'active' : ''}" aria-pressed="${k === active}">${k}</button>`).join('')}
       </span>
     </div>`;
@@ -113,7 +163,7 @@ export function renderDevice(el, device) {
     <div class="device-page">
       <a class="back" href="#/">← All devices</a>
       <div class="device-head">
-        <img src="${device.image}" alt="${device.name}">
+        <img src="${device.image}" alt="">
         <div>
           <h1>${device.name}</h1>
           <p>${device.description}</p>
@@ -129,7 +179,7 @@ export function renderDevice(el, device) {
         </div>
         <div id="variant-note-slot"></div>
         ${channels.length < 2 && Object.keys(device.firmware[channel]).length < 2
-          ? '<p style="color:var(--dim);margin:0 0 4px;">One firmware for this device — nothing to choose here.</p>' : ''}
+          ? '<p class="hint single-note">One firmware for this device — nothing to choose here.</p>' : ''}
         <div id="release-slot"></div>
         <div id="config-slot"></div>
       </section>
@@ -140,7 +190,6 @@ export function renderDevice(el, device) {
       </section>
 
       <section class="step" id="step-done">
-        <h2><span class="num">3</span> Add to Home Assistant</h2>
         <div id="step3-slot"></div>
         <p><a href="${device.wiki}">Full ${device.name} setup guide on the wiki →</a></p>
       </section>
@@ -212,18 +261,19 @@ export function renderDevice(el, device) {
           <esp-web-install-button manifest="${manifest}">
             <button slot="activate" class="install-btn">Connect &amp; Install</button>
           </esp-web-install-button>
-          <p style="color:var(--dim);font-size:.85rem;margin:10px 0 0;">
+          <p class="hint install-hint">
             Plug the device into this computer with a USB data cable, click the button, and pick the serial port.</p>`;
       }
     } else {
       installSlot.innerHTML = `
         <div class="fallback">
           <strong>This browser can't flash over USB.</strong>
-          <p>Installing from the browser needs Chrome, Edge, or Firefox. You can still install manually:</p>
+          <p>Installing from the browser needs Chrome, Edge, or Firefox on a computer. You can still install manually:</p>
           <ul id="fallback-files"><li>Loading firmware file list…</li></ul>
           <ul>
             <li>Flash it with <a href="https://web.esphome.io">ESPHome Web</a> (open it in Chrome, Edge, or Firefox) or
-                <code>esptool write-flash --port &lt;port&gt; 0x0 &lt;file&gt;</code>.</li>
+                <code>esptool write-flash --port &lt;port&gt; &lt;offset&gt; &lt;file&gt;</code>, using the offset
+                listed next to each file (only the files for your board's chip, if several are listed).</li>
             ${classic ? `<li>Or use the <a href="${classic}">classic installer page</a> in Chrome, Edge, or Firefox.</li>` : ''}
           </ul>
         </div>`;
@@ -232,13 +282,19 @@ export function renderDevice(el, device) {
       // instead of the new device's freshly rendered #fallback-files.
       const filesEl = el.querySelector('#fallback-files');
       try {
-        const res = await fetch(manifest);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const m = await res.json();
+        const m = await fetchManifest(manifest);
         if (epoch !== myEpoch) return; // selection changed mid-fetch
-        const files = m.builds.flatMap((b) => b.parts.map((p) => new URL(p.path, manifest).href));
-        filesEl.innerHTML =
-          files.map((f) => `<li><a href="${encodeURI(f)}">${f.split('/').pop().replace(/[<>&"']/g, '')}</a></li>`).join('');
+        // Part paths are runtime data: resolve them against the manifest, keep
+        // only https links, and escape what goes into the markup. A manifest
+        // with builds for several chips labels each file with its chip.
+        const several = m.builds.length > 1;
+        const parts = m.builds
+          .flatMap((b) => b.parts.map((p) => ({
+            chip: b.chipFamily, url: new URL(p.path, manifest), offset: Number(p.offset) || 0 })))
+          .filter((p) => p.url.protocol === 'https:');
+        if (!parts.length) throw new Error('no firmware files');
+        filesEl.innerHTML = parts.map((p) => `<li>${several ? `${esc(p.chip)}: ` : ''}<a href="${esc(p.url.href)}">${esc(fileName(p.url))}</a>
+          at <code>0x${p.offset.toString(16)}</code></li>`).join('');
       } catch {
         if (epoch !== myEpoch) return; // selection changed mid-fetch
         filesEl.innerHTML =
@@ -252,22 +308,43 @@ export function renderDevice(el, device) {
     const slot = el.querySelector('#release-slot');
     const myEpoch = epoch;
     const repo = repoFor(device, channel, variant);
-    try {
-      const rel = await fetchReleaseNotes(repo, channel);
-      if (epoch !== myEpoch) return; // selection changed mid-fetch
-      const url = /^https:\/\/github\.com\//.test(rel.url) ? rel.url : `https://github.com/${repo}/releases`;
+    const manifestUrl = selectedManifest(device, channel, variant);
+    // Never leave the previous selection's notes, build number or "Full release"
+    // link next to this variant's install button while its own load. Both lookups
+    // are memoized, so a revisited variant replaces this before it is painted.
+    const key = `${repo}|${channel}|${manifestUrl}`;
+    if (slot.dataset.key !== key) {
+      slot.dataset.key = key;
+      slot.innerHTML = '<div class="release-notes">Loading release notes…</div>';
+    }
+    const [rel, man] = await Promise.allSettled([
+      fetchReleaseNotes(repo, channel),
+      fetchManifest(manifestUrl),
+    ]);
+    if (epoch !== myEpoch) return; // selection changed mid-fetch
+    const version = man.status === 'fulfilled' ? man.value.version : null;
+    if (rel.status === 'fulfilled' && releaseMatches(rel.value, version)) {
+      const r = rel.value;
+      const url = /^https:\/\/github\.com\//.test(r.url) ? r.url : `https://github.com/${repo}/releases`;
       slot.innerHTML = `
         <div class="release-notes">
           <details>
-            <summary>What's new in ${esc(rel.name)}</summary>
-            <pre>${esc(rel.body)}</pre>
+            <summary>What's new in ${esc(r.name)}</summary>
+            <pre>${esc(r.body)}</pre>
             <a href="${esc(url)}">Full release →</a>
           </details>
         </div>`;
-    } catch {
-      if (epoch !== myEpoch) return; // selection changed mid-fetch
+    } else if (rel.status === 'fulfilled') {
+      // The repo's latest release is a different build; don't present its notes
+      // or assets as this firmware's.
+      slot.innerHTML = `
+        <div class="release-notes version-only">
+          Installs build <strong>${esc(version)}</strong>.
+        </div>`;
+    } else {
       slot.innerHTML = `
         <div class="release-notes">
+          ${version ? `Installs build <strong>${esc(version)}</strong>.` : ''}
           See <a class="fail-link" href="https://github.com/${repo}/releases">recent releases</a>
           for what's new.
         </div>`;
@@ -283,12 +360,14 @@ export function renderDevice(el, device) {
       <details class="config">
         <summary>Build or reflash this firmware yourself</summary>
         <p class="config-hint">The ESPHome config for the <strong>${variant}</strong> variant
-          (<code>${filename}</code>). Rebuilding from this keeps the device's onboarding, so the
-          <a href="${device.wiki}">${device.name} wiki</a> setup steps still apply.</p>
+          (<code>${filename}</code>). It pulls in other files from the same folder, so build it
+          from a copy of the whole folder, not this file alone. The
+          <a href="${device.wiki}">${device.name} wiki</a> has the setup steps.</p>
         <pre class="config-yaml"><code>Loading config…</code></pre>
         <div class="config-actions">
           <button class="config-download" disabled>Download .yaml</button>
           <a class="config-github" href="${rawToBlob(url)}" target="_blank" rel="noopener">View on GitHub →</a>
+          <a class="config-folder" href="${rawToTree(url)}" target="_blank" rel="noopener">Browse the folder →</a>
         </div>
       </details>`;
     const codeEl = slot.querySelector('.config-yaml code');
@@ -312,6 +391,7 @@ export function renderDevice(el, device) {
   if (chanSeg) chanSeg.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-channel]');
     if (!b) return;
+    if (b.dataset.channel === channel) return; // already selected — keep the chosen variant
     channel = b.dataset.channel;
     variant = Object.keys(device.firmware[channel])[0];
     epoch++;

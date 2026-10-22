@@ -38,7 +38,8 @@ export function initThemeToggle() {
   function updateBtn(pref) {
     // The dog is the CSS background; the small badge shows the current mode.
     if (badge) badge.textContent = ICONS[pref];
-    btn.setAttribute('aria-label', LABELS[pref]);
+    // Name the current mode and what a click does; the title alone is not announced.
+    btn.setAttribute('aria-label', `${LABELS[pref]}. ${NEXT_LABEL[pref]}`);
     btn.title = NEXT_LABEL[pref];
   }
 
