@@ -1,11 +1,15 @@
 """Offline unit tests for validate_registry.py (stdlib unittest, no deps).
 
 Run: python scripts/test_validate_registry.py
-Covers the manifest-shape checks and head_ok's exception handling without
-touching the network.
+Covers the shape checks, head_ok's exception handling, the classic-installer
+comparison and main() against a temporary registry, without touching the network.
 """
+import contextlib
+import io
+import json
 import os
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -51,6 +55,31 @@ class ShapeChecks(unittest.TestCase):
         errs = vr.check_manifest_shape(m, "dev stable/wifi")
         self.assertTrue(any("chipFamily" in e for e in errs), errs)
 
+    def test_unknown_chip_family_errors(self):
+        # esp-web-tools matches chipFamily exactly; "ESP32C3" would be "unsupported".
+        m = {"builds": [{"chipFamily": "ESP32C3", "parts": [{"path": "a.bin"}]}]}
+        errs = vr.check_manifest_shape(m, "dev stable/wifi")
+        self.assertTrue(any("unknown chipFamily" in e for e in errs), errs)
+
+    def test_non_object_manifest_errors_without_crashing(self):
+        for bad in ([{"chipFamily": "ESP32"}], "x", None):
+            errs = vr.check_manifest_shape(bad, "dev stable/wifi")
+            self.assertTrue(any("not a JSON object" in e for e in errs), (bad, errs))
+
+    def test_non_object_build_or_part_errors_without_crashing(self):
+        self.assertTrue(vr.check_manifest_shape({"builds": ["x"]}, "d"))
+        m = {"builds": [{"chipFamily": "ESP32", "parts": ["a.bin"]}]}
+        errs = vr.check_manifest_shape(m, "d")
+        self.assertTrue(any("path" in e for e in errs), errs)
+        self.assertEqual(list(vr.part_paths(m)), [])
+
+    def test_non_string_part_path_errors_and_is_skipped(self):
+        # urljoin() would raise on a numeric path in the network loop.
+        m = {"builds": [{"chipFamily": "ESP32", "parts": [{"path": 123}, {"path": "a.bin"}]}]}
+        errs = vr.check_manifest_shape(m, "d")
+        self.assertTrue(any("path" in e for e in errs), errs)
+        self.assertEqual(list(vr.part_paths(m)), ["a.bin"])
+
 
 class HeadOk(unittest.TestCase):
     def test_url_error_returns_false(self):
@@ -65,31 +94,51 @@ class HeadOk(unittest.TestCase):
                                side_effect=TimeoutError("read timed out")):
             self.assertFalse(vr.head_ok("https://example.com/x.bin"))
 
+    def test_dropped_connection_returns_false(self):
+        # urllib does not wrap a server hang-up in URLError.
+        for exc in (vr.http.client.RemoteDisconnected("closed"), ConnectionResetError()):
+            with mock.patch.object(vr.urllib.request, "urlopen", side_effect=exc):
+                self.assertFalse(vr.head_ok("https://example.com/x.bin"), exc)
+
+    def test_cors_ok(self):
+        self.assertTrue(vr.cors_ok({"Access-Control-Allow-Origin": "*"}))
+        self.assertTrue(vr.cors_ok({"Access-Control-Allow-Origin": vr.ORIGIN}))
+        self.assertFalse(vr.cors_ok({}))
+        self.assertFalse(vr.cors_ok({"Access-Control-Allow-Origin": "https://evil.example"}))
+
 
 class ConfigShape(unittest.TestCase):
+    FW = {"stable": {"WiFi": "https://x/m.json", "Standard": "https://y/m.json"}}
+
     def test_good_config_has_no_errors(self):
         cfg = {"stable": {"WiFi": "https://raw.githubusercontent.com/o/r/main/a.yaml"}}
-        self.assertEqual(vr.check_config_shape(cfg, "r-pro-1"), [])
+        self.assertEqual(vr.check_config_shape(cfg, self.FW, "r-pro-1"), [])
 
     def test_non_string_url_errors(self):
         cfg = {"stable": {"WiFi": 123}}
-        errs = vr.check_config_shape(cfg, "r-pro-1")
+        errs = vr.check_config_shape(cfg, self.FW, "r-pro-1")
         self.assertTrue(any("WiFi" in e for e in errs), errs)
 
     def test_non_https_url_errors(self):
         cfg = {"stable": {"Standard": "http://insecure/a.yaml"}}
-        errs = vr.check_config_shape(cfg, "x")
+        errs = vr.check_config_shape(cfg, self.FW, "x")
         self.assertTrue(any("https" in e for e in errs), errs)
 
     def test_channel_not_object_errors(self):
         cfg = {"stable": "oops"}
-        errs = vr.check_config_shape(cfg, "x")
+        errs = vr.check_config_shape(cfg, self.FW, "x")
         self.assertTrue(any("stable" in e for e in errs), errs)
 
     def test_non_dict_config_errors_without_crashing(self):
         for bad in (None, "oops", []):
-            errs = vr.check_config_shape(bad, "x")
+            errs = vr.check_config_shape(bad, self.FW, "x")
             self.assertTrue(any("config" in e for e in errs), (bad, errs))
+
+    def test_variant_not_in_firmware_errors(self):
+        # A typo would silently drop the "Build or reflash" section for the variant.
+        cfg = {"stable": {"Standrd": "https://raw.githubusercontent.com/o/r/main/a.yaml"}}
+        errs = vr.check_config_shape(cfg, self.FW, "x")
+        self.assertTrue(any("no such firmware variant" in e for e in errs), errs)
 
 
 class ReposShapeChecks(unittest.TestCase):
@@ -184,7 +233,7 @@ class PlatformChecks(unittest.TestCase):
         self.assertEqual(vr.check_platform(None, "dev"), [])
 
     def test_known_platforms_ok(self):
-        for p in ("esphome", "wled"):
+        for p in ("esphome", "wled", "standalone"):
             self.assertEqual(vr.check_platform(p, "dev"), [], p)
 
     def test_unknown_platform_errors(self):
@@ -218,6 +267,183 @@ class PlatformsShapeChecks(unittest.TestCase):
     def test_variant_not_in_firmware_errors(self):
         errs = vr.check_platforms_shape({"stable": {"ghost": "wled"}}, self.FW, "dev")
         self.assertTrue(any("no such firmware variant" in e for e in errs), errs)
+
+
+def device(**over):
+    d = {
+        "id": "msr-1", "name": "MSR-1", "category": "mmWave presence",
+        "description": "Sensor", "image": "images/msr-1.jpg",
+        "wiki": "https://wiki.apolloautomation.com/products/msr1/introduction/",
+        "repo": "ApolloAutomation/MSR-1",
+        "githubPagesInstaller": "https://apolloautomation.github.io/MSR-1/",
+        "firmware": {"stable": {
+            "Standard": "https://apolloautomation.github.io/MSR-1/firmware-factory/manifest.json"}},
+    }
+    d.update(over)
+    return d
+
+
+class InTempRepo(unittest.TestCase):
+    """Run with cwd in a scratch dir holding images/msr-1.jpg, like the repo root."""
+
+    def setUp(self):
+        self._cwd = os.getcwd()
+        self._tmp = tempfile.TemporaryDirectory()
+        os.chdir(self._tmp.name)
+        os.makedirs("images")
+        open("images/msr-1.jpg", "wb").close()
+
+    def tearDown(self):
+        os.chdir(self._cwd)
+        self._tmp.cleanup()
+
+
+class DeviceShape(InTempRepo):
+    def test_good_device_ok(self):
+        self.assertEqual(vr.check_device_shape(device(), "msr-1"), [])
+
+    def test_missing_required_field_errors(self):
+        for key in vr.REQUIRED:
+            d = device()
+            del d[key]
+            errs = vr.check_device_shape(d, "x")
+            self.assertTrue(any(repr(key) in e for e in errs), (key, errs))
+
+    def test_id_must_be_lowercase_kebab(self):
+        for bad in ("MSR-1", "msr_1", "msr 1", "-msr", "msr--1"):
+            errs = vr.check_device_shape(device(id=bad), "x")
+            self.assertTrue(any("lowercase-kebab" in e for e in errs), (bad, errs))
+
+    def test_missing_image_file_errors(self):
+        errs = vr.check_device_shape(device(image="images/nope.jpg"), "x")
+        self.assertTrue(any("does not exist" in e for e in errs), errs)
+
+    def test_image_named_after_id(self):
+        open("images/other.jpg", "wb").close()
+        errs = vr.check_device_shape(device(image="images/other.jpg"), "x")
+        self.assertTrue(any("named after the id" in e for e in errs), errs)
+
+    def test_non_https_urls_error(self):
+        for key in ("wiki", "githubPagesInstaller", "imageSource"):
+            errs = vr.check_device_shape(device(**{key: "http://x/"}), "x")
+            self.assertTrue(any(key in e for e in errs), (key, errs))
+
+    def test_empty_channel_errors(self):
+        fw = {"stable": device()["firmware"]["stable"], "beta": {}}
+        errs = vr.check_device_shape(device(firmware=fw), "x")
+        self.assertTrue(any("beta" in e for e in errs), errs)
+
+    def test_no_stable_channel_errors(self):
+        errs = vr.check_device_shape(device(firmware={"beta": {"a": "https://x"}}), "x")
+        self.assertTrue(any("no stable channel" in e for e in errs), errs)
+
+    def test_two_variants_on_one_manifest_errors(self):
+        # e.g. the Ethernet variant pasted with the WiFi build's URL.
+        url = "https://apolloautomation.github.io/MSR-1/firmware-w/manifest.json"
+        errs = vr.check_device_shape(device(firmware={"stable": {"WiFi": url, "Ethernet": url}}), "x")
+        self.assertTrue(any("same manifest as 'WiFi'" in e for e in errs), errs)
+
+    def test_markup_breaking_variant_key_errors(self):
+        url = "https://apolloautomation.github.io/MSR-1/firmware/manifest.json"
+        errs = vr.check_device_shape(device(firmware={"stable": {'Say "hi"': url}}), "x")
+        self.assertTrue(any("breaks the page markup" in e for e in errs), errs)
+
+
+class ManifestUrl(unittest.TestCase):
+    def test_own_pages_site_ok(self):
+        url = "https://apolloautomation.github.io/MSR-1/firmware-factory/manifest.json"
+        self.assertEqual(vr.check_manifest_url(url, "ApolloAutomation/MSR-1", "w"), [])
+
+    def test_manifest_copied_from_another_device_errors(self):
+        # The copy-paste mistake that would flash H-2 firmware onto an H-3.
+        url = "https://apolloautomation.github.io/H-2/firmware/manifest.json"
+        errs = vr.check_manifest_url(url, "ApolloAutomation/H-3", "w")
+        self.assertTrue(any("Pages site" in e for e in errs), errs)
+
+    def test_release_asset_host_errors(self):
+        url = "https://github.com/ApolloAutomation/MSR-2/releases/download/beta-fw/manifest.json"
+        self.assertTrue(vr.check_manifest_url(url, "ApolloAutomation/MSR-2", "w"))
+
+    def test_non_https_errors(self):
+        url = "http://apolloautomation.github.io/MSR-1/firmware/manifest.json"
+        errs = vr.check_manifest_url(url, "ApolloAutomation/MSR-1", "w")
+        self.assertTrue(any("https" in e for e in errs), errs)
+
+    def test_repos_override_is_used(self):
+        dev = device(id="m-1", repo="ApolloAutomation/WLED-MM-M1",
+                     repos={"stable": {"v16": "ApolloAutomation/WLED-M1"}})
+        self.assertEqual(vr.repo_for(dev, "stable", "v16"), "ApolloAutomation/WLED-M1")
+        self.assertEqual(vr.repo_for(dev, "stable", "v14"), "ApolloAutomation/WLED-MM-M1")
+
+
+class UniqueIds(unittest.TestCase):
+    def test_duplicate_id_errors(self):
+        # Merging PR #32 as it stood would have listed TEMP_PRO-1 twice.
+        errs = vr.check_unique_ids([device(), device(id="air-1"), device()])
+        self.assertEqual(errs, ["msr-1: duplicate id"])
+
+
+class ClassicInstaller(unittest.TestCase):
+    PAGE = "https://apolloautomation.github.io/AIR-1/"
+    HTML = """<esp-web-install-button manifest="./firmware-factory/manifest.json">
+              <esp-web-install-button manifest='https://other.example/m.json'>"""
+
+    def test_manifests_on_page_resolves_relative_urls(self):
+        self.assertEqual(vr.manifests_on_page(self.HTML, self.PAGE), {
+            "https://apolloautomation.github.io/AIR-1/firmware-factory/manifest.json",
+            "https://other.example/m.json"})
+
+    def test_registry_build_the_page_flashes_ok(self):
+        flashed = vr.manifests_on_page(self.HTML, self.PAGE)
+        url = self.PAGE + "firmware-factory/manifest.json"
+        self.assertEqual(vr.check_classic_agrees("w", url, self.PAGE, flashed), [])
+
+    def test_build_the_page_does_not_flash_errors(self):
+        # AIR-1 before PR #33: the registry pointed at firmware/ (no improv) while
+        # the classic installer flashed firmware-factory/.
+        flashed = vr.manifests_on_page(self.HTML, self.PAGE)
+        errs = vr.check_classic_agrees("w", self.PAGE + "firmware/manifest.json", self.PAGE, flashed)
+        self.assertTrue(any("doesn't flash" in e for e in errs), errs)
+
+    def test_unreachable_page_errors(self):
+        errs = vr.check_classic_agrees("w", self.PAGE + "x.json", self.PAGE, None)
+        self.assertTrue(any("unreachable" in e for e in errs), errs)
+
+    def test_installer_override_wins(self):
+        dev = device(installers={"stable": {"Standard": None}})
+        self.assertIsNone(vr.classic_installer_for(dev, "stable", "Standard"))
+        self.assertEqual(vr.classic_installer_for(device(), "stable", "Standard"),
+                         device()["githubPagesInstaller"])
+
+
+class MainOffline(InTempRepo):
+    def run_main(self, devices):
+        with open("devices.json", "w", encoding="utf-8") as f:
+            json.dump({"devices": devices}, f)
+        vr.errors.clear()
+        with mock.patch.object(vr.urllib.request, "urlopen",
+                               side_effect=AssertionError("offline run touched the network")), \
+                contextlib.redirect_stdout(io.StringIO()):
+            try:
+                vr.main(["--offline"])
+            except SystemExit as e:
+                return e.code
+        return 0
+
+    def test_good_registry_passes(self):
+        self.assertEqual(self.run_main([device()]), 0)
+        self.assertEqual(vr.errors, [])
+
+    def test_null_channel_with_overrides_reports_instead_of_crashing(self):
+        fw = dict(device()["firmware"], beta=None)
+        cfg = {"beta": {"Standard": "https://raw.githubusercontent.com/o/r/main/a.yaml"}}
+        self.assertEqual(self.run_main([device(firmware=fw, config=cfg)]), 1)
+        self.assertTrue(any("beta" in e for e in vr.errors), vr.errors)
+
+    def test_duplicate_and_bad_entries_fail(self):
+        self.assertEqual(self.run_main([device(), device(), "junk"]), 1)
+        self.assertIn("msr-1: duplicate id", vr.errors)
+        self.assertTrue(any("devices[2]" in e for e in vr.errors), vr.errors)
 
 
 if __name__ == "__main__":
