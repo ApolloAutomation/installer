@@ -33,7 +33,7 @@
       "githubPagesInstaller": "https://apolloautomation.github.io/MSR-2/",
       "firmware": {
         "stable": {
-          "Standard": "https://apolloautomation.github.io/MSR-2/firmware/manifest.json"
+          "Standard": "https://apolloautomation.github.io/MSR-2/firmware-factory/manifest.json"
         }
       },
       "config": {
@@ -98,7 +98,7 @@
       "githubPagesInstaller": "https://apolloautomation.github.io/AIR-1/",
       "firmware": {
         "stable": {
-          "Standard": "https://apolloautomation.github.io/AIR-1/firmware/manifest.json"
+          "Standard": "https://apolloautomation.github.io/AIR-1/firmware-factory/manifest.json"
         }
       },
       "config": {
@@ -127,6 +127,35 @@
         "stable": {
           "USB Power": "https://raw.githubusercontent.com/ApolloAutomation/TEMP-1/main/Integrations/ESPHome/TEMP-1_R2.yaml",
           "Battery Power": "https://raw.githubusercontent.com/ApolloAutomation/TEMP-1/main/Integrations/ESPHome/TEMP-1B_R2.yaml"
+        }
+      }
+    },
+    {
+      "id": "temp-pro-1",
+      "name": "TEMP_PRO-1",
+      "category": "Temperature",
+      "description": "PoE temperature and humidity sensor",
+      "image": "images/temp-pro-1.jpg",
+      "imageSource": "https://wiki.apolloautomation.com/assets/temp-pro-1-product.jpg",
+      "wiki": "https://wiki.apolloautomation.com/products/temppro1/introduction/",
+      "repo": "ApolloAutomation/TEMP_PRO-1",
+      "githubPagesInstaller": "https://apolloautomation.github.io/TEMP_PRO-1/",
+      "firmware": {
+        "stable": {
+          "WiFi": "https://apolloautomation.github.io/TEMP_PRO-1/firmware-w/manifest.json",
+          "Ethernet": "https://apolloautomation.github.io/TEMP_PRO-1/firmware-e/manifest.json"
+        }
+      },
+      "config": {
+        "stable": {
+          "WiFi": "https://raw.githubusercontent.com/ApolloAutomation/TEMP_PRO-1/main/Integrations/ESPHome/TEMP_PRO-1_W.yaml",
+          "Ethernet": "https://raw.githubusercontent.com/ApolloAutomation/TEMP_PRO-1/main/Integrations/ESPHome/TEMP_PRO-1_ETH.yaml"
+        }
+      },
+      "variantNotes": {
+        "stable": {
+          "WiFi": "Connects over Wi-Fi. After installing, the installer asks for your Wi-Fi network.",
+          "Ethernet": "For a wired or PoE connection, with no Wi-Fi. Plug in the Ethernet cable before you power it on."
         }
       }
     },
