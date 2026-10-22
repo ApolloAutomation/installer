@@ -1,5 +1,9 @@
 # YAML View / Download on Device Pages — Design
 
+> **Historical.** Every product config `!include`s sibling files (`Core.yaml` and others), so a
+> downloaded single file can't be built on its own. The page now says to build from the whole
+> folder and links it.
+
 Date: 2026-07-09
 Status: Approved by Brandon (2026-07-09)
 Issue: #3

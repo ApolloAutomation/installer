@@ -10,15 +10,17 @@ The M-1 offers two WLED firmwares in the installer, both served from GitHub Page
 
 WLED 16.0.1 is the default. It is a single merged full-install image (bootloader, partition
 table, otadata, application, and LittleFS factory config) built from ApolloAutomation/WLED-M1.
-Its manifest sets new_install_prompt_erase, so esp-web-tools prompts a full erase, which is what
-guarantees a factory-fresh 64x64 boot. It is offered for Rev6 only, so Rev4 owners must switch
-to the WLED-MM 14.5.1 (Rev4) variant.
+The full image is what gives a factory-fresh 64x64 boot: it covers flash up to 0xff0000, leaving
+only the coredump partition. Its manifest sets new_install_prompt_erase, which makes esp-web-tools
+*offer* a full erase as an unticked checkbox rather than always erasing. It is offered for Rev6
+only, so Rev4 owners must switch to the WLED-MM 14.5.1 (Rev4) variant; the `variantNotes` under the
+toggle say where the revision is printed.
 
 The M-1 entry sets `"platform": "wled"`, so step 3 of the wizard gives the WLED onboarding
 (open Apollo M-1 hotspot at 4.3.2.1, discovered WLED integration, WLED web UI for effects and
-manual OTA) instead
-of the ESPHome Dashboard "Take control" flow. The hardware can run ESPHome, we just do not offer
-an ESPHome build yet. When we do, add that manifest as another variant and mark it in a
+manual OTA) instead of the ESPHome Device Builder "Take control" flow. Step 3 does not name an OTA
+file, because the only `_ota.bin` published (WLED-M1's M-1_ota.bin) is a Rev6 image. The hardware
+can run ESPHome, we just do not offer an ESPHome build yet. When we do, add that manifest as another variant and mark it in a
 `platforms` map (`"platforms": { "stable": { "<variant>": "esphome" } }`); step 3 then switches
 back to the ESPHome instructions whenever that variant is selected, and stays WLED for the rest.
 
@@ -26,8 +28,14 @@ Because the default variant has no classic installer page of its own, the M-1 pa
 the "Classic installer" link hidden and the header GitHub link pointing at WLED-M1; both come
 back when a 14.5.1 variant is selected.
 
-Customers already on WLED-MM 14.5.1 can OTA to 16.0.1 with the M-1_ota.bin app-only image
-(same partition table preserves settings); the installer only serves the first-flash full image.
+Rev6 owners already on WLED-MM 14.5.1 can OTA to 16.0.1 with the M-1_ota.bin app-only image
+(same partition table preserves settings). Rev4 owners must not: M-1_ota.bin uses the Rev6
+(MOONHUB) pinout. The installer only serves the first-flash full image.
+
+Release notes: WLED-MM-M1's only GitHub release (25.7.14.1) predates both builds its manifests
+serve (25.8.19.1 for Rev4, 25.10.9.1 for Rev6), so the installer shows "Installs firmware version
+..." for those variants instead of that release's notes. Publishing releases for those versions
+brings the notes back with no installer change.
 
 Hosting: WLED-MM-M1 serves the 14.5.1 manifests from committed files via legacy branch Pages.
 WLED-M1 serves the 16.0.1 manifest through an Actions Pages workflow
@@ -36,9 +44,11 @@ from the latest GitHub release, so the 16MB image never enters git history.
 
 ## Setup hotspot (verified against the shipped images, not WLED defaults)
 
-Both the 16.0.1 and 14.5.1 Apollo builds broadcast an **open** hotspot, not the stock WLED
-`WLED-AP` / `wled1234` pair. The string `wled1234` is absent from `M-1_full_install.bin` and from
+Both the 16.0.1 and 14.5.1 Apollo builds broadcast an **open** hotspot named `Apollo M-1`, not
+the stock WLED `WLED-AP` / `wled1234` pair. The string `wled1234` is absent from `M-1_full_install.bin` and from
 `Apollo_M-1_Rev6_14.5.1.bin`, while the sibling default `wledota` is present in both, so `apPass`
 is empty. The m1-b8 release notes state it directly: "STEP 1: join the open Apollo M-1 WiFi", and
 list "cleaner hotspot name: the setup WiFi is now just Apollo M-1 (no serial-number suffix)" as new
-in that build, which is why step 3 says older builds carry a suffix. Setup address is 4.3.2.1.
+in that build. That compares b8 with the earlier 16.0.1 bundles (b1-b7); the WLED-MM 14.5.1 build
+never added a suffix (its env sets `WLED_AP_SSID` without `WLED_AP_SSID_UNIQUE`), so step 3 names
+plain `Apollo M-1`. Setup address is 4.3.2.1.
