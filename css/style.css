@@ -1,6 +1,7 @@
 :root {
   --blue: #417AAB;
-  --blue-dark: #35638b;
+  --link: #35638b;   /* text links: >= 4.5:1 on the ground and the tinted boxes */
+  --fill: #417AAB;   /* filled controls with white text */
   --green: #9ABD32;
   --ink: #22303c;
   --dim: #5c6b7a;
@@ -12,10 +13,12 @@
   --bg-green-tint: #f5f9ec;
   --bg-error: #faf0ed;
   --border-error: #c0563c;
+  color-scheme: light;
 }
 [data-theme="dark"] {
   --blue: #5b9fd4;
-  --blue-dark: #4a87bb;
+  --link: #5b9fd4;
+  --fill: #2f6fa3;   /* #5b9fd4 is only 2.9:1 under white text */
   --green: #a8cf35;
   --ink: #e4edf5;
   --dim: #8fa0b3;
@@ -27,13 +30,14 @@
   --bg-green-tint: #0c1a06;
   --bg-error: #1e0e0a;
   --border-error: #d06550;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body {
   margin: 0; background: var(--ground); color: var(--ink);
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif; line-height: 1.55;
 }
-a { color: var(--blue); }
+a { color: var(--link); }
 /* Branded keyboard-focus ring (only on keyboard focus, not mouse clicks).
    Outline follows each control's own border-radius, so pills stay round. */
 a:focus-visible,
@@ -42,12 +46,14 @@ summary:focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
+/* Headings get programmatic focus on route changes; no ring for those. */
+[tabindex="-1"]:focus { outline: none; }
 .site-header {
-  display: flex; justify-content: space-between; align-items: center;
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px;
   padding: 14px 24px; background: var(--panel); border-bottom: 1px solid var(--line);
 }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; color: var(--blue); font-size: 1.05rem; }
-.site-header nav { display: flex; gap: 18px; align-items: center; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; color: var(--blue); font-size: 1.05rem; white-space: nowrap; }
+.site-header nav { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; }
 .site-header nav a { color: var(--dim); text-decoration: none; }
 .theme-btn {
   position: relative; width: 30px; height: 30px; border: none; padding: 0; cursor: pointer;
@@ -67,8 +73,9 @@ summary:focus-visible {
    backing it already has on the (white) light-mode header so it stays legible. */
 [data-theme="dark"] .theme-btn { background-color: #fff; border-radius: 6px; }
 main { max-width: 1080px; margin: 0 auto; padding: 32px 24px 64px; }
-.site-footer { text-align: center; color: var(--dim); font-size: .85rem; padding: 24px; border-top: 1px solid var(--line); }
 .loading { color: var(--dim); }
+.hint { color: var(--dim); font-size: .85rem; }
+.notice { border-left: 3px solid var(--blue); background: var(--bg-blue-tint); border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 0 0 18px; }
 
 /* Hub */
 .hero h1 { font-size: 1.9rem; margin: 0 0 6px; letter-spacing: -.01em; }
@@ -78,14 +85,15 @@ main { max-width: 1080px; margin: 0 auto; padding: 32px 24px 64px; }
   border: 1px solid var(--line); background: var(--panel); color: var(--dim);
   border-radius: 999px; padding: 5px 14px; font-size: .85rem; cursor: pointer;
 }
-.filters button.active { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
+.filters button.active { background: var(--fill); border-color: var(--fill); color: #fff; font-weight: 600; }
 .device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
 .device-card {
   display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
   padding: 14px; text-decoration: none; color: inherit; transition: border-color .15s, box-shadow .15s;
 }
 .device-card:hover { border-color: var(--blue); box-shadow: 0 4px 14px -8px rgba(65,122,171,.5); }
-.device-card img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; background: var(--img-bg); }
+/* contain, not cover: a few product shots aren't square and carry spec text at the edges. */
+.device-card img { width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: 6px; background: var(--img-bg); }
 .device-card h3 { margin: 10px 0 2px; font-size: 1rem; }
 .device-card p { margin: 0; color: var(--dim); font-size: .82rem; }
 .device-card .go { color: var(--blue); font-weight: 600; font-size: .85rem; margin-top: 8px; display: inline-block; }
@@ -93,24 +101,28 @@ main { max-width: 1080px; margin: 0 auto; padding: 32px 24px 64px; }
 /* Device wizard */
 .device-page .back { display: inline-block; margin-bottom: 16px; text-decoration: none; color: var(--dim); }
 .device-head { display: flex; gap: 20px; align-items: center; margin-bottom: 20px; }
-.device-head img { width: 110px; height: 110px; object-fit: contain; background: var(--img-bg); border: 1px solid var(--line); border-radius: 10px; }
+.device-head img { width: 110px; height: 110px; flex: none; object-fit: contain; background: var(--img-bg); border: 1px solid var(--line); border-radius: 10px; }
 .device-head h1 { margin: 0; font-size: 1.6rem; }
 .device-head p { margin: 2px 0 6px; color: var(--dim); }
 .device-head .links { font-size: .85rem; }
 .step { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 14px; }
 .step h2 { margin: 0 0 10px; font-size: 1.05rem; display: flex; align-items: center; gap: 10px; }
 .step h2 .num {
-  width: 26px; height: 26px; border-radius: 50%; background: var(--blue); color: #fff;
+  width: 26px; height: 26px; border-radius: 50%; background: var(--fill); color: #fff;
   display: inline-grid; place-items: center; font-size: .85rem; flex: none;
 }
 .picker { display: flex; gap: 24px; flex-wrap: wrap; }
-.picker .group label { display: block; font-size: .78rem; color: var(--dim); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
+.picker .seg-label { display: block; font-size: .78rem; color: var(--dim); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
 .seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .seg button { border: 0; background: var(--panel); color: var(--dim); padding: 7px 16px; font-size: .88rem; cursor: pointer; }
-.seg button.active { background: var(--blue); color: #fff; font-weight: 600; }
+.seg button.active { background: var(--fill); color: #fff; font-weight: 600; }
+/* .seg clips overflow for its rounded corners, so draw the focus ring inside the button. */
+.seg button:focus-visible { outline-offset: -4px; outline-color: currentColor; }
 .variant-note { color: var(--dim); font-size: .88rem; margin: 8px 0 4px; max-width: 60ch; }
+.single-note { margin: 0 0 4px; font-size: inherit; }
+.install-hint { margin: 10px 0 0; }
 esp-web-install-button button, .install-btn {
-  background: var(--blue); color: #fff; border: 0; border-radius: 8px;
+  background: var(--fill); color: #fff; border: 0; border-radius: 8px;
   padding: 10px 22px; font-size: .95rem; font-weight: 700; cursor: pointer;
 }
 .fallback { border-left: 3px solid var(--blue); background: var(--bg-blue-tint); border-radius: 0 8px 8px 0; padding: 12px 16px; }
@@ -120,7 +132,7 @@ esp-web-install-button button, .install-btn {
 .release-notes pre { white-space: pre-wrap; font-family: inherit; margin: 8px 0; }
 .done-check { color: var(--green); font-weight: 700; }
 .customize { margin: 4px 0 14px; font-size: .9rem; }
-.customize summary { cursor: pointer; color: var(--blue); font-weight: 600; }
+.customize summary { cursor: pointer; color: var(--link); font-weight: 600; }
 .customize p { margin: 8px 0 0; color: var(--dim); }
 .customize code { background: var(--bg-blue-tint); padding: 1px 5px; border-radius: 4px; }
 .error-box { border-left: 3px solid var(--border-error); background: var(--bg-error); border-radius: 0 8px 8px 0; padding: 12px 16px; }
@@ -133,6 +145,20 @@ esp-web-install-button button, .install-btn {
 .config-yaml { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow: auto; max-height: 340px; }
 .config-yaml code { font-family: ui-monospace, Consolas, monospace; font-size: .8rem; line-height: 1.5; white-space: pre; color: var(--ink); }
 .config-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
-.config-download { background: var(--blue); color: #fff; border: 0; border-radius: 8px; padding: 9px 18px; font-size: .9rem; font-weight: 700; cursor: pointer; }
+.config-download { background: var(--fill); color: #fff; border: 0; border-radius: 8px; padding: 9px 18px; font-size: .9rem; font-weight: 700; cursor: pointer; }
 .config-download:disabled { opacity: .55; cursor: default; }
-.config-github { font-size: .86rem; font-weight: 600; }
+.config-github, .config-folder { font-size: .86rem; font-weight: 600; }
+
+/* Phones: tighter gutters, two device cards per row, and a header that wraps
+   instead of pushing the page sideways. */
+@media (max-width: 480px) {
+  .site-header { padding: 10px 16px; }
+  .site-header nav { gap: 14px; font-size: .92rem; }
+  main { padding: 24px 16px 48px; }
+  .hero h1 { font-size: 1.6rem; }
+  .device-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .device-card { padding: 10px; }
+  .device-head { gap: 14px; }
+  .device-head img { width: 84px; height: 84px; }
+  .step { padding: 16px; }
+}

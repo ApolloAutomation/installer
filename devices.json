@@ -84,6 +84,12 @@
           "WiFi": "https://raw.githubusercontent.com/ApolloAutomation/R_PRO-1/main/Integrations/ESPHome/R_PRO-1_W.yaml",
           "Ethernet": "https://raw.githubusercontent.com/ApolloAutomation/R_PRO-1/main/Integrations/ESPHome/R_PRO-1_ETH.yaml"
         }
+      },
+      "variantNotes": {
+        "stable": {
+          "WiFi": "Connects over Wi-Fi. After installing, the installer asks for your Wi-Fi network.",
+          "Ethernet": "For a wired or PoE connection, with no Wi-Fi. Connect the Ethernet cable; the installer won't ask for a Wi-Fi network."
+        }
       }
     },
     {
@@ -272,6 +278,13 @@
         "stable": {
           "WLED 16.0.1 (Rev6 only)": null
         }
+      },
+      "variantNotes": {
+        "stable": {
+          "WLED 16.0.1 (Rev6 only)": "For Rev6 controllers. The revision is printed on the back of the board; on a Rev4, pick WLED-MM 14.5.1 (Rev4) instead.",
+          "WLED-MM 14.5.1 (Rev6)": "The earlier WLED-MM firmware, for Rev6 controllers.",
+          "WLED-MM 14.5.1 (Rev4)": "For Rev4 controllers, which can't run WLED 16.0.1."
+        }
       }
     },
     {
@@ -296,7 +309,7 @@
       },
       "variantNotes": {
         "stable": {
-          "Smart (Wi-Fi)": "Joins your Wi-Fi and Home Assistant: change songs and LED effects, run automations, use it as a Bluetooth proxy. Sleeps between button presses to save battery."
+          "Smart (Wi-Fi)": "Joins your Wi-Fi and Home Assistant: change songs and LED effects and run automations. It stays awake by default; turn off Prevent Sleep in Home Assistant to save battery between button presses."
         }
       }
     },
@@ -324,8 +337,13 @@
       },
       "variantNotes": {
         "stable": {
-          "Smart (Wi-Fi)": "Joins your Wi-Fi and Home Assistant: change songs and LED effects, run automations, use it as a Bluetooth proxy. Sleeps between button presses to save battery.",
-          "Basic (No Wi-Fi)": "The firmware the ornament ships with. No Wi-Fi or Home Assistant; the buttons play the built-in tunes. Install this to put the ornament back to stock."
+          "Smart (Wi-Fi)": "Joins your Wi-Fi and Home Assistant: change songs and LED effects and run automations. After installing, restart it (remove power for a moment), then join the open Apollo H2 Hotspot Wi-Fi network from your phone to pick your Wi-Fi. It stays awake by default; turn off Prevent Sleep in Home Assistant to save battery between button presses.",
+          "Basic (No Wi-Fi)": "The firmware the ornament ships with. No Wi-Fi or Home Assistant: the buttons play the built-in tunes, and it sleeps between presses to save battery. Install this to put the ornament back to stock."
+        }
+      },
+      "platforms": {
+        "stable": {
+          "Basic (No Wi-Fi)": "standalone"
         }
       }
     },
@@ -353,8 +371,13 @@
       },
       "variantNotes": {
         "stable": {
-          "Smart (Wi-Fi)": "Joins your Wi-Fi and Home Assistant: change songs and LED effects, run automations, use it as a Bluetooth proxy. Sleeps between button presses to save battery.",
-          "Basic (No Wi-Fi)": "The firmware the ornament ships with. No Wi-Fi or Home Assistant; the buttons play the built-in tunes. Install this to put the ornament back to stock."
+          "Smart (Wi-Fi)": "Joins your Wi-Fi and Home Assistant: change songs and LED effects, run automations, and turn on its Bluetooth Proxy switch to use it as a Bluetooth proxy. It stays awake by default; turn off Prevent Sleep in Home Assistant to save battery between button presses.",
+          "Basic (No Wi-Fi)": "The firmware the ornament ships with. No Wi-Fi or Home Assistant: the buttons play the built-in tunes, and it sleeps between presses to save battery. Install this to put the ornament back to stock."
+        }
+      },
+      "platforms": {
+        "stable": {
+          "Basic (No Wi-Fi)": "standalone"
         }
       }
     }

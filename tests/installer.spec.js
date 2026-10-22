@@ -4,6 +4,48 @@ const path = require('path');
 
 const registry = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'devices.json'), 'utf8'));
 
+const manifestFor = (file, version = '1.0.0') => JSON.stringify({
+  name: 't', version,
+  builds: [{ chipFamily: 'ESP32', parts: [{ path: file, offset: 0 }] }],
+});
+
+// Keep the suite hermetic: no live GitHub API calls (60/hour/IP, shared on CI
+// runners), manifests or configs unless a test routes its own. Playwright runs
+// the most recently registered matching route first, so per-test routes win.
+test.beforeEach(async ({ page }) => {
+  await page.route('https://api.github.com/**', (route) => route.fulfill({ status: 403 }));
+  await page.route('https://apolloautomation.github.io/**/manifest.json', (route) =>
+    route.fulfill({ contentType: 'application/json', body: manifestFor('firmware.bin') }));
+  await page.route('https://raw.githubusercontent.com/**', (route) =>
+    route.fulfill({ contentType: 'text/plain', body: 'esphome:\n  name: stub\n' }));
+});
+
+// Serve `body` after `ms` and expose when it was delivered, so stale-write tests
+// assert right after the late response lands instead of sleeping past it.
+function lateRoute(ms, body, contentType) {
+  let delivered;
+  const done = new Promise((r) => { delivered = r; });
+  const handler = async (route) => {
+    await new Promise((r) => setTimeout(r, ms));
+    await route.fulfill({ contentType, body });
+    delivered();
+  };
+  return { handler, done };
+}
+// Let the page finish handling a response that just arrived.
+const settle = (page) => page.evaluate(() => new Promise((r) =>
+  requestAnimationFrame(() => requestAnimationFrame(r))));
+
+// Pin the WebSerial path either way so tests don't depend on the browser build.
+const forceSerial = (page) => page.addInitScript(() => {
+  if (!('serial' in navigator)) {
+    Object.defineProperty(navigator, 'serial', { value: {}, configurable: true });
+  }
+});
+const noSerial = (page) => page.addInitScript(() => {
+  Object.defineProperty(Navigator.prototype, 'serial', { get: () => undefined });
+});
+
 test('hub renders a card for every registry device', async ({ page }) => {
   await page.goto('/');
   for (const d of registry.devices) {
@@ -69,6 +111,7 @@ test('channel/variant toggles expose aria-pressed reflecting the selection', asy
 
 test('deep link renders the device wizard', async ({ page }) => {
   const d = registry.devices[0];
+  await forceSerial(page);
   await page.goto(`/#/${d.id}`);
   await expect(page.locator('.device-head h1')).toHaveText(d.name);
   await expect(page.locator('esp-web-install-button')).toHaveAttribute(
@@ -93,13 +136,7 @@ test('channel/variant toggles rewire the install button', async ({ page }) => {
 test('changing variant reuses the install button instead of recreating it', async ({ page }) => {
   const d = registry.devices.find((x) => Object.keys(x.firmware.stable).length > 1);
   test.skip(!d, 'no multi-variant device in registry');
-  // Force the WebSerial path (headless Chromium lacks navigator.serial) so the
-  // esp-web-install-button renders.
-  await page.addInitScript(() => {
-    if (!('serial' in navigator)) {
-      Object.defineProperty(navigator, 'serial', { value: {}, configurable: true });
-    }
-  });
+  await forceSerial(page);
   await page.goto(`/#/${d.id}`);
 
   // Tag the initially-rendered install button so we can tell if it survives.
@@ -119,39 +156,31 @@ test('changing variant reuses the install button instead of recreating it', asyn
 });
 
 test('manual fallback renders when WebSerial is unavailable', async ({ page }) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(Navigator.prototype, 'serial', { get: () => undefined });
-  });
+  await noSerial(page);
   const d = registry.devices[0];
   await page.goto(`/#/${d.id}`);
   await expect(page.locator('.fallback')).toBeVisible();
   await expect(page.locator('esp-web-install-button')).toHaveCount(0);
   // esptool v5 spells the subcommand `write-flash` and needs an explicit --port.
-  await expect(page.locator('.fallback code')).toContainText('write-flash');
-  await expect(page.locator('.fallback code')).toContainText('--port');
+  const esptool = page.locator('.fallback code', { hasText: 'esptool' });
+  await expect(esptool).toContainText('write-flash');
+  await expect(esptool).toContainText('--port');
 });
 
 test('late manifest fetch for a deselected variant does not overwrite the fallback list', async ({ page }) => {
   const d = registry.devices.find((x) => Object.keys(x.firmware.stable).length > 1);
   test.skip(!d, 'no multi-variant device in registry');
   const variants = Object.keys(d.firmware.stable);
-  const manifestFor = (file) => JSON.stringify({
-    name: 't', version: '1',
-    builds: [{ chipFamily: 'ESP32', parts: [{ path: file, offset: 0 }] }],
-  });
-  await page.addInitScript(() => {
-    Object.defineProperty(Navigator.prototype, 'serial', { get: () => undefined });
-  });
+  await noSerial(page);
   // First variant's manifest responds slowly, after the user has moved on.
-  await page.route(d.firmware.stable[variants[0]], async (route) => {
-    await new Promise((r) => setTimeout(r, 1500));
-    await route.fulfill({ contentType: 'application/json', body: manifestFor('wifi.bin') });
-  });
+  const slow = lateRoute(1500, manifestFor('wifi.bin'), 'application/json');
+  await page.route(d.firmware.stable[variants[0]], slow.handler);
   await page.route(d.firmware.stable[variants[1]], (route) =>
     route.fulfill({ contentType: 'application/json', body: manifestFor('eth.bin') }));
   await page.goto(`/#/${d.id}`);
   await page.locator(`#variant-seg button[data-variant="${variants[1]}"]`).click();
-  await page.waitForTimeout(2500);
+  await slow.done;
+  await settle(page);
   await expect(page.locator('#fallback-files a[href$="eth.bin"]')).toHaveCount(1);
   await expect(page.locator('#fallback-files a[href$="wifi.bin"]')).toHaveCount(0);
 });
@@ -160,25 +189,18 @@ test('late manifest fetch does not leak into another device page after navigatio
   const old = registry.devices.find((x) => Object.keys(x.firmware.stable).length > 1);
   test.skip(!old, 'no multi-variant device in registry');
   const next = registry.devices.find((x) => x.id !== old.id);
-  const manifestFor = (file) => JSON.stringify({
-    name: 't', version: '1',
-    builds: [{ chipFamily: 'ESP32', parts: [{ path: file, offset: 0 }] }],
-  });
-  await page.addInitScript(() => {
-    Object.defineProperty(Navigator.prototype, 'serial', { get: () => undefined });
-  });
+  await noSerial(page);
   // Old device's manifest responds slowly — after the user has navigated away.
-  await page.route(old.firmware.stable[Object.keys(old.firmware.stable)[0]], async (route) => {
-    await new Promise((r) => setTimeout(r, 1500));
-    await route.fulfill({ contentType: 'application/json', body: manifestFor('old-device.bin') });
-  });
+  const slow = lateRoute(1500, manifestFor('old-device.bin'), 'application/json');
+  await page.route(old.firmware.stable[Object.keys(old.firmware.stable)[0]], slow.handler);
   await page.route(next.firmware.stable[Object.keys(next.firmware.stable)[0]], (route) =>
     route.fulfill({ contentType: 'application/json', body: manifestFor('new-device.bin') }));
   await page.goto(`/#/${old.id}`);
   await expect(page.locator('.fallback')).toBeVisible();
   await page.evaluate((hash) => { location.hash = hash; }, `#/${next.id}`);
   await expect(page.locator('.device-head h1')).toHaveText(next.name);
-  await page.waitForTimeout(2500);
+  await slow.done;
+  await settle(page);
   // The stale response must not overwrite the new device's fallback list.
   await expect(page.locator('#fallback-files a[href$="old-device.bin"]')).toHaveCount(0);
   await expect(page.locator('#fallback-files a[href$="new-device.bin"]')).toHaveCount(1);
@@ -186,8 +208,10 @@ test('late manifest fetch does not leak into another device page after navigatio
 
 test('release notes render from the GitHub API', async ({ page }) => {
   const d = registry.devices[0];
+  await page.route(d.firmware.stable[Object.keys(d.firmware.stable)[0]], (route) =>
+    route.fulfill({ contentType: 'application/json', body: manifestFor('a.bin', '99.9.9.9') }));
   await page.route('https://api.github.com/**', (route) =>
-    route.fulfill({ json: { name: 'v99.9.9.9', body: '- test note line', html_url: 'https://example.com/rel' } }));
+    route.fulfill({ json: { name: 'v99.9.9.9', tag_name: '99.9.9.9', body: '- test note line', html_url: 'https://example.com/rel' } }));
   await page.goto(`/#/${d.id}`);
   await expect(page.locator('.release-notes summary')).toContainText('v99.9.9.9');
 });
@@ -204,8 +228,10 @@ test('release notes ignore an off-allowlist API url and use the safe releases hr
   const d = registry.devices[0];
   // A compromised or unexpected html_url must never become the "Full release" link;
   // anything not on github.com falls back to the device's releases page.
+  await page.route(d.firmware.stable[Object.keys(d.firmware.stable)[0]], (route) =>
+    route.fulfill({ contentType: 'application/json', body: manifestFor('a.bin', '1.2.3.4') }));
   await page.route('https://api.github.com/**', (route) =>
-    route.fulfill({ json: { name: 'v1.2.3.4', body: '- note', html_url: 'https://evil.example.com/pwn' } }));
+    route.fulfill({ json: { name: 'v1.2.3.4', tag_name: '1.2.3.4', body: '- note', html_url: 'https://evil.example.com/pwn' } }));
   await page.goto(`/#/${d.id}`);
   const full = page.locator('.release-notes a', { hasText: 'Full release' });
   await expect(full).toHaveAttribute('href', `https://github.com/${d.repo}/releases`);
@@ -424,15 +450,14 @@ test('device config: a slow fetch for a deselected variant does not overwrite', 
   const d = registry.devices.find((x) => x.config && x.config.stable && Object.keys(x.config.stable).length > 1);
   test.skip(!d, 'no multi-variant config device');
   const variants = Object.keys(d.config.stable);
-  await page.route(d.config.stable[variants[0]], async (route) => {
-    await new Promise((r) => setTimeout(r, 1500));
-    await route.fulfill({ contentType: 'text/plain', body: 'esphome:\n  name: cfg-slow-0\n' });
-  });
+  const slow = lateRoute(1500, 'esphome:\n  name: cfg-slow-0\n', 'text/plain');
+  await page.route(d.config.stable[variants[0]], slow.handler);
   await page.route(d.config.stable[variants[1]], (route) =>
     route.fulfill({ contentType: 'text/plain', body: 'esphome:\n  name: cfg-fast-1\n' }));
   await page.goto(`/#/${d.id}`);
   await page.locator(`#variant-seg button[data-variant="${variants[1]}"]`).click();
-  await page.waitForTimeout(2500);
+  await slow.done;
+  await settle(page);
   await expect(page.locator('.config-yaml code')).toContainText('cfg-fast-1');
   await expect(page.locator('.config-yaml code')).not.toContainText('cfg-slow-0');
 });
@@ -474,4 +499,212 @@ test('single-firmware devices show the "nothing to choose" note above the releas
     return !!(note && rel && (note.compareDocumentPosition(rel) & Node.DOCUMENT_POSITION_FOLLOWING));
   });
   expect(noteBeforeRelease).toBe(true);
+});
+
+test('every device and variant puts its own manifest on the install button', async ({ page }) => {
+  // The site's worst failure mode is a wrong-firmware link, so walk the whole
+  // registry instead of sampling one device.
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await forceSerial(page);
+  await page.goto('/');
+  for (const d of registry.devices) {
+    await page.evaluate((hash) => { location.hash = hash; }, `#/${d.id}`);
+    await expect(page.locator('.device-head h1')).toHaveText(d.name);
+    await expect(page).toHaveTitle(`${d.name} · Apollo Installer`);
+    const channels = Object.keys(d.firmware);
+    for (const channel of channels) {
+      if (channels.length > 1) await page.locator(`#channel-seg button[data-channel="${channel}"]`).click();
+      const variants = Object.keys(d.firmware[channel]);
+      for (const variant of variants) {
+        if (variants.length > 1) await page.locator(`#variant-seg button[data-variant="${variant}"]`).click();
+        await expect(page.locator('#install-slot esp-web-install-button'))
+          .toHaveAttribute('manifest', d.firmware[channel][variant]);
+      }
+    }
+  }
+  expect(errors).toEqual([]);
+});
+
+test('every hub card image loads', async ({ page }) => {
+  await page.goto('/');
+  const imgs = page.locator('a.device-card img');
+  await expect(imgs).toHaveCount(registry.devices.length);
+  for (const img of await imgs.all()) {
+    await img.scrollIntoViewIfNeeded();
+    await expect.poll(() => img.evaluate((el) => el.complete && el.naturalWidth)).toBeGreaterThan(0);
+  }
+});
+
+test('step 3 says there is nothing to add for a standalone (no Wi-Fi) variant', async ({ page }) => {
+  const d = registry.devices.find((x) => x.platforms && x.platforms.stable
+    && Object.values(x.platforms.stable).includes('standalone'));
+  test.skip(!d, 'no standalone variant in registry');
+  const standalone = Object.keys(d.platforms.stable).find((v) => d.platforms.stable[v] === 'standalone');
+  const networked = Object.keys(d.firmware.stable).find((v) => v !== standalone);
+  await page.goto(`/#/${d.id}`);
+  const done = page.locator('#step-done');
+  await page.locator(`#variant-seg button[data-variant="${standalone}"]`).click();
+  await expect(done.locator('h2')).toContainText("You're done");
+  await expect(done).toContainText('nothing to add');
+  await expect(done).not.toContainText('ESPHome');
+  await expect(done).not.toContainText('Devices & services');
+  await page.locator(`#variant-seg button[data-variant="${networked}"]`).click();
+  await expect(done.locator('h2')).toContainText('Add to Home Assistant');
+});
+
+test('a beta channel swaps manifests, keeps the variant on re-click, and shows prerelease notes', async ({ page }) => {
+  const src = registry.devices.find((x) => Object.keys(x.firmware.stable).length > 1);
+  test.skip(!src, 'no multi-variant device in registry');
+  // No device ships a beta channel today, so synthesize one.
+  const d = JSON.parse(JSON.stringify(src));
+  const variants = Object.keys(d.firmware.stable);
+  d.firmware.beta = Object.fromEntries(variants.map((v) =>
+    [v, d.firmware.stable[v].replace('/manifest.json', '-beta/manifest.json')]));
+  await page.route('**/devices.json', (route) => route.fulfill({ json: { devices: [d] } }));
+  await page.route('**/*-beta/manifest.json', (route) =>
+    route.fulfill({ contentType: 'application/json', body: manifestFor('b.bin', '2.1.0-beta') }));
+  await page.route(`https://api.github.com/repos/${d.repo}/releases?per_page=15`, (route) => route.fulfill({ json: [
+    { name: 'v2.0.0', tag_name: '2.0.0', prerelease: false, body: 'stable', html_url: 'https://github.com/a/b/releases/tag/2.0.0' },
+    { name: 'v2.1.0-beta', tag_name: '2.1.0-beta', prerelease: true, body: 'beta', html_url: 'https://github.com/a/b/releases/tag/2.1.0-beta' },
+  ] }));
+  await forceSerial(page);
+  await page.goto(`/#/${d.id}`);
+  const btn = page.locator('#install-slot esp-web-install-button');
+  await expect(btn).toHaveAttribute('manifest', d.firmware.stable[variants[0]]);
+
+  await page.locator('#channel-seg button[data-channel="beta"]').click();
+  await expect(btn).toHaveAttribute('manifest', d.firmware.beta[variants[0]]);
+  await page.locator(`#variant-seg button[data-variant="${variants[1]}"]`).click();
+  await expect(btn).toHaveAttribute('manifest', d.firmware.beta[variants[1]]);
+  await expect(page.locator('.release-notes summary')).toContainText('v2.1.0-beta');
+
+  // Re-clicking the active channel keeps the chosen variant.
+  await page.locator('#channel-seg button[data-channel="beta"]').click();
+  await expect(btn).toHaveAttribute('manifest', d.firmware.beta[variants[1]]);
+
+  await page.locator('#channel-seg button[data-channel="stable"]').click();
+  await expect(btn).toHaveAttribute('manifest', d.firmware.stable[variants[0]]);
+  await expect(page.locator('#channel-seg button[data-channel="stable"]')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('release notes give way to the version when the latest release is another build', async ({ page }) => {
+  // e.g. WLED-MM-M1's only release predates the builds its manifests serve.
+  const d = registry.devices[0];
+  await page.route(d.firmware.stable[Object.keys(d.firmware.stable)[0]], (route) =>
+    route.fulfill({ contentType: 'application/json', body: manifestFor('a.bin', '2.0.0.1') }));
+  await page.route('https://api.github.com/**', (route) => route.fulfill({ json: {
+    name: 'Initial release', tag_name: '1.0.0.1', body: 'old', html_url: 'https://github.com/a/b/releases/tag/1.0.0.1' } }));
+  await page.goto(`/#/${d.id}`);
+  await expect(page.locator('.release-notes')).toContainText('Installs build 2.0.0.1');
+  await expect(page.locator('.release-notes summary')).toHaveCount(0);
+  await expect(page.locator('.release-notes a', { hasText: 'Full release' })).toHaveCount(0);
+});
+
+test("an older build doesn't borrow the latest release's notes via its compare link", async ({ page }) => {
+  // Every release body ends with a "Full Changelog" link naming the previous version.
+  const d = registry.devices[0];
+  await page.route(d.firmware.stable[Object.keys(d.firmware.stable)[0]], (route) =>
+    route.fulfill({ contentType: 'application/json', body: manifestFor('a.bin', '26.7.14.1') }));
+  await page.route('https://api.github.com/**', (route) => route.fulfill({ json: {
+    name: 'Release 26.10.12.1', tag_name: '26.10.12.1', html_url: 'https://github.com/a/b/releases/tag/26.10.12.1',
+    body: '- fixes\n\n**Full Changelog**: https://github.com/a/b/compare/26.7.14.1...26.10.12.1' } }));
+  await page.goto(`/#/${d.id}`);
+  await expect(page.locator('.release-notes.version-only')).toContainText('Installs build 26.7.14.1');
+});
+
+test('release notes that name the flashed version still show (bundle-style tags)', async ({ page }) => {
+  const d = registry.devices[0];
+  await page.route(d.firmware.stable[Object.keys(d.firmware.stable)[0]], (route) =>
+    route.fulfill({ contentType: 'application/json', body: manifestFor('a.bin', '16.0.1') }));
+  await page.route('https://api.github.com/**', (route) => route.fulfill({ json: {
+    name: 'Firmware bundle b8', tag_name: 'm1-b8', body: 'v16.0.1 with fixes', html_url: 'https://github.com/a/b/releases/tag/m1-b8' } }));
+  await page.goto(`/#/${d.id}`);
+  await expect(page.locator('.release-notes summary')).toContainText('Firmware bundle b8');
+});
+
+test('fallback file list keeps only https parts and shows each offset', async ({ page }) => {
+  const d = registry.devices[0];
+  await noSerial(page);
+  await page.route(d.firmware.stable[Object.keys(d.firmware.stable)[0]], (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ version: '1', builds: [{ chipFamily: 'ESP32', parts: [
+      { path: 'my file.bin', offset: 0 },
+      { path: 'javascript:alert(1)', offset: 0 },
+      { path: 'boot.bin', offset: 4096 },
+    ] }] }),
+  }));
+  await page.goto(`/#/${d.id}`);
+  const links = page.locator('#fallback-files a');
+  await expect(links).toHaveCount(2);
+  await expect(links.first()).toHaveText('my file.bin');
+  await expect(links.first()).toHaveAttribute('href', /\/my%20file\.bin$/);
+  await expect(page.locator('#fallback-files')).toContainText('0x1000');
+});
+
+test('hash routing: unknown ids show the hub with a notice; case and trailing slash are ignored', async ({ page }) => {
+  await page.goto('/#/no-such-device');
+  await expect(page.locator('.device-grid')).toBeVisible();
+  await expect(page.locator('#hub-notice')).toContainText('no-such-device');
+  // The hash is user input and must stay text.
+  await page.goto('/#/<b>bold</b>');
+  await expect(page.locator('#hub-notice')).toContainText('<b>bold</b>');
+  await expect(page.locator('#hub-notice b')).toHaveCount(0);
+  const d = registry.devices[0];
+  await page.goto(`/#/${d.id.toUpperCase()}/`);
+  await expect(page.locator('.device-head h1')).toHaveText(d.name);
+  await page.goto('/#/');
+  await expect(page.locator('#hub-notice')).toHaveCount(0);
+  await expect(page).toHaveTitle('Apollo Installer');
+});
+
+test('opening a device moves keyboard focus to its heading', async ({ page }) => {
+  const d = registry.devices[0];
+  await page.goto('/');
+  await page.locator(`a.device-card[href="#/${d.id}"]`).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.device-head h1')).toBeFocused();
+});
+
+test('firmware picker is a labelled group', async ({ page }) => {
+  const d = registry.devices.find((x) => Object.keys(x.firmware.stable).length > 1);
+  test.skip(!d, 'no multi-variant device in registry');
+  await page.goto(`/#/${d.id}`);
+  await expect(page.getByRole('group', { name: 'Variant' })).toBeVisible();
+});
+
+test('theme toggle cycles system, dark, light and remembers the choice', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto('/');
+  const html = page.locator('html');
+  const btn = page.locator('#theme-toggle');
+  const stored = () => page.evaluate(() => localStorage.getItem('theme'));
+  await expect(html).not.toHaveAttribute('data-theme', 'dark');
+  await expect(btn).toHaveAttribute('aria-label', /System theme/);
+
+  await btn.click();
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+  expect(await stored()).toBe('dark');
+  await page.reload();
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+
+  await btn.click();
+  await expect(html).not.toHaveAttribute('data-theme', 'dark');
+  expect(await stored()).toBe('light');
+
+  await btn.click();
+  expect(await stored()).toBeNull();
+  await expect(btn).toHaveAttribute('aria-label', /System theme/);
+});
+
+test('every page fits a 360px phone screen without sideways scrolling', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  await page.goto('/');
+  for (const hash of ['#/', ...registry.devices.map((d) => `#/${d.id}`)]) {
+    await page.evaluate((h) => { location.hash = h; }, hash);
+    await expect(page.locator('h1').first()).toBeVisible();
+    const [scroll, client] = await page.evaluate(() =>
+      [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
+    expect(scroll, hash).toBeLessThanOrEqual(client);
+  }
 });
