@@ -5,3 +5,8 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    # One PR for all action bumps, so they merge (and deploy) together; separate
+    # PRs also queue behind Dependabot's five-open-PR limit.
+    groups:
+      github-actions:
+        patterns: ["*"]

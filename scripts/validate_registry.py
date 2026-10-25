@@ -11,15 +11,19 @@ chipFamily; every part path resolves (HEAD 200); configs and wiki pages are
 reachable; and each manifest is one the variant's classic installer page offers.
 (That can't tell two of a page's builds apart, so two variants swapped with each
 other still pass; a variant duplicating another's manifest is caught offline.)
+A request that fails in a way that may be transient (connection error, timeout,
+5xx) is retried once, so one network blip doesn't fail the nightly run.
 Exit 1 on any failure.
 
 Run: python scripts/validate_registry.py [--offline]
 """
+import collections
 import http.client
 import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -37,21 +41,44 @@ ID_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 # Channel and variant keys are written into HTML attributes and CSS selectors.
 UNSAFE_KEY_CHARS = set('"<>&`\\')
 MANIFEST_ATTR = re.compile(r"""\bmanifest\s*=\s*["']([^"']+)["']""")
+RETRY_DELAY = 5  # seconds before the one retry of a request that may have failed transiently
 errors = []
+
+Response = collections.namedtuple("Response", "status headers body url")
+
+def fetch(url, method="GET", headers=None):
+    """One request, read in full (the body is skipped for HEAD).
+
+    Raises like urlopen on failure. A failure that may be transient (connection
+    error, timeout, 5xx) is retried once after RETRY_DELAY seconds; a 4xx is not,
+    because it won't fix itself. URLError and a read-phase TimeoutError are both
+    OSErrors; a dropped connection can also surface unwrapped (RemoteDisconnected).
+    """
+    req = urllib.request.Request(url, headers=dict(UA, **(headers or {})), method=method)
+    for attempt in (1, 2):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                body = b"" if method == "HEAD" else r.read()
+                return Response(r.status, r.headers, body, r.geturl())
+        except urllib.error.HTTPError as e:
+            if e.code < 500 or attempt == 2:
+                raise
+        except (OSError, http.client.HTTPException):
+            if attempt == 2:
+                raise
+        time.sleep(RETRY_DELAY)
 
 def head(url):
     """HEAD url with the installer's Origin; return the headers on a 200, else None.
 
-    Any connection, timeout or protocol failure counts as unreachable rather than
-    crashing the run. URLError and a read-phase TimeoutError are both OSErrors;
-    a dropped connection can also surface unwrapped (RemoteDisconnected).
+    Any failure (after fetch()'s retry) counts as unreachable rather than
+    crashing the run.
     """
-    req = urllib.request.Request(url, headers=dict(UA, Origin=ORIGIN), method="HEAD")
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return r.headers if r.status == 200 else None
+        r = fetch(url, "HEAD", {"Origin": ORIGIN})
     except (OSError, http.client.HTTPException):
         return None
+    return r.headers if r.status == 200 else None
 
 def head_ok(url):
     return head(url) is not None
@@ -344,10 +371,9 @@ def check_platforms_shape(platforms, firmware, dev_id):
 def check_manifest(dev_id, channel, variant, murl):
     where = f"{dev_id} {channel}/{variant}"
     try:
-        req = urllib.request.Request(murl, headers=dict(UA, Origin=ORIGIN))
-        with urllib.request.urlopen(req, timeout=30) as r:
-            readable = cors_ok(r.headers)
-            manifest = json.load(r)
+        r = fetch(murl, headers={"Origin": ORIGIN})
+        readable = cors_ok(r.headers)
+        manifest = json.loads(r.body)
     except Exception as e:
         errors.append(f"{where}: manifest fetch/parse failed: {e}")
         return
@@ -374,10 +400,8 @@ def classic_manifests(page):
     """Fetch a classic installer page once; None when it can't be reached."""
     if page not in _classic_pages:
         try:
-            req = urllib.request.Request(page, headers=UA)
-            with urllib.request.urlopen(req, timeout=30) as r:
-                html = r.read().decode("utf-8", "replace")
-                _classic_pages[page] = manifests_on_page(html, r.geturl())
+            r = fetch(page)
+            _classic_pages[page] = manifests_on_page(r.body.decode("utf-8", "replace"), r.url)
         except (OSError, http.client.HTTPException, ValueError):
             _classic_pages[page] = None
     return _classic_pages[page]

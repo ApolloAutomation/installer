@@ -16,6 +16,29 @@ from unittest import mock
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import validate_registry as vr  # noqa: E402
 
+vr.RETRY_DELAY = 0  # the retry tests below must not sleep
+
+
+class FakeResponse:
+    def __init__(self, body=b"", status=200, headers=None, url="https://example.com/"):
+        self.status, self.headers, self._body, self._url = status, headers or {}, body, url
+
+    def read(self):
+        return self._body
+
+    def geturl(self):
+        return self._url
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def http_error(code):
+    return vr.urllib.error.HTTPError("https://example.com/x", code, "err", {}, None)
+
 
 class ShapeChecks(unittest.TestCase):
     def test_good_manifest_has_no_errors(self):
@@ -99,6 +122,60 @@ class HeadOk(unittest.TestCase):
         for exc in (vr.http.client.RemoteDisconnected("closed"), ConnectionResetError()):
             with mock.patch.object(vr.urllib.request, "urlopen", side_effect=exc):
                 self.assertFalse(vr.head_ok("https://example.com/x.bin"), exc)
+
+    def test_transient_failure_is_retried_once(self):
+        # One blip (the 2026-10-23 nightly: AIR-1's classic page) must not fail the run.
+        ok = FakeResponse(headers={"Access-Control-Allow-Origin": "*"})
+        for blip in (vr.urllib.error.URLError("reset"), TimeoutError(), http_error(503)):
+            urlopen = mock.Mock(side_effect=[blip, ok])
+            with mock.patch.object(vr.urllib.request, "urlopen", urlopen):
+                self.assertTrue(vr.head_ok("https://example.com/x.bin"), blip)
+            self.assertEqual(urlopen.call_count, 2, blip)
+
+    def test_head_never_reads_a_body(self):
+        # On Python 3.12 a redirected HEAD becomes a GET; reading it would pull
+        # down a whole firmware image for every part checked.
+        ok = FakeResponse()
+        ok.read = mock.Mock(side_effect=AssertionError("HEAD read a body"))
+        with mock.patch.object(vr.urllib.request, "urlopen", return_value=ok):
+            self.assertTrue(vr.head_ok("https://example.com/x.bin"))
+
+    def test_client_error_is_not_retried(self):
+        urlopen = mock.Mock(side_effect=http_error(404))
+        with mock.patch.object(vr.urllib.request, "urlopen", urlopen):
+            self.assertFalse(vr.head_ok("https://example.com/x.bin"))
+        self.assertEqual(urlopen.call_count, 1)
+
+    def test_gives_up_after_one_retry(self):
+        urlopen = mock.Mock(side_effect=vr.urllib.error.URLError("down"))
+        with mock.patch.object(vr.urllib.request, "urlopen", urlopen):
+            self.assertFalse(vr.head_ok("https://example.com/x.bin"))
+        self.assertEqual(urlopen.call_count, 2)
+
+    def test_classic_page_fetch_is_retried_and_resolves_against_the_final_url(self):
+        # Without the trailing slash, Pages redirects to .../AIR-1/; relative
+        # manifests must resolve there, not at the site root.
+        page = "https://apolloautomation.github.io/AIR-1"
+        html = b'<esp-web-install-button manifest="./firmware-factory/manifest.json">'
+        urlopen = mock.Mock(side_effect=[TimeoutError(), FakeResponse(html, url=page + "/")])
+        vr._classic_pages.clear()
+        with mock.patch.object(vr.urllib.request, "urlopen", urlopen):
+            self.assertEqual(vr.classic_manifests(page), {page + "/firmware-factory/manifest.json"})
+        self.assertEqual(urlopen.call_count, 2)
+        vr._classic_pages.clear()
+
+    def test_manifest_fetch_is_retried(self):
+        body = b'{"builds": [{"chipFamily": "ESP32", "parts": [{"path": "a.bin"}]}]}'
+        cors = {"Access-Control-Allow-Origin": "*"}
+        urlopen = mock.Mock(side_effect=[
+            vr.urllib.error.URLError("reset"), FakeResponse(body, headers=cors),  # manifest
+            FakeResponse(headers=cors),                                            # part HEAD
+        ])
+        vr.errors.clear()
+        with mock.patch.object(vr.urllib.request, "urlopen", urlopen):
+            vr.check_manifest("dev", "stable", "v", "https://example.com/m/manifest.json")
+        self.assertEqual(vr.errors, [])
+        self.assertEqual(urlopen.call_count, 3)
 
     def test_cors_ok(self):
         self.assertTrue(vr.cors_ok({"Access-Control-Allow-Origin": "*"}))
