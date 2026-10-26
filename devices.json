@@ -126,13 +126,25 @@
       "firmware": {
         "stable": {
           "USB Power": "https://apolloautomation.github.io/TEMP-1/firmware2/manifest.json",
-          "Battery Power": "https://apolloautomation.github.io/TEMP-1/firmware-b2/manifest.json"
+          "Battery Power": "https://apolloautomation.github.io/TEMP-1/firmware-b2/manifest.json",
+          "USB Power (R1, support only)": "https://apolloautomation.github.io/TEMP-1/firmware/manifest.json",
+          "Battery Power (R1, support only)": "https://apolloautomation.github.io/TEMP-1/firmware-b/manifest.json"
         }
       },
       "config": {
         "stable": {
           "USB Power": "https://raw.githubusercontent.com/ApolloAutomation/TEMP-1/main/Integrations/ESPHome/TEMP-1_R2.yaml",
-          "Battery Power": "https://raw.githubusercontent.com/ApolloAutomation/TEMP-1/main/Integrations/ESPHome/TEMP-1B_R2.yaml"
+          "Battery Power": "https://raw.githubusercontent.com/ApolloAutomation/TEMP-1/main/Integrations/ESPHome/TEMP-1B_R2.yaml",
+          "USB Power (R1, support only)": "https://raw.githubusercontent.com/ApolloAutomation/TEMP-1/main/Integrations/ESPHome/TEMP-1.yaml",
+          "Battery Power (R1, support only)": "https://raw.githubusercontent.com/ApolloAutomation/TEMP-1/main/Integrations/ESPHome/TEMP-1B.yaml"
+        }
+      },
+      "variantNotes": {
+        "stable": {
+          "USB Power": "For a USB-powered TEMP-1. Nearly every TEMP-1 uses this Revision 2 firmware.",
+          "Battery Power": "For the battery-powered TEMP-1B. Nearly every TEMP-1B uses this Revision 2 firmware.",
+          "USB Power (R1, support only)": "Install this only if Apollo support confirmed your board is Revision 1. On a Revision 2 board the Food Probe reads far off. If you're not sure, use USB Power.",
+          "Battery Power (R1, support only)": "Install this only if Apollo support confirmed your board is Revision 1. On a Revision 2 board the Food Probe reads far off. If you're not sure, use Battery Power."
         }
       }
     },
