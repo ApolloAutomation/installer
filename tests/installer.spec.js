@@ -380,6 +380,26 @@ test('step 3 gives WLED instructions on a WLED device, not ESPHome ones', async 
   await expect(done).not.toContainText('dashboard_import');
 });
 
+test('step 3 walks a Game Day Scoreboard install through Wi-Fi and picking a team', async ({ page }) => {
+  const d = registry.devices.find((x) => x.platforms && x.platforms.stable
+    && Object.values(x.platforms.stable).includes('gameday'));
+  test.skip(!d, 'no Game Day Scoreboard variant in registry');
+  const variant = Object.keys(d.platforms.stable).find((v) => d.platforms.stable[v] === 'gameday');
+  await page.goto(`/#/${d.id}`);
+  await page.locator(`#variant-seg button[data-variant="${variant}"]`).click();
+  const done = page.locator('#step-done');
+  await expect(done.locator('h2')).toContainText('pick your team');
+  await expect(done).toContainText('Game Day');
+  await expect(done).toContainText('gameday-');
+  await expect(done).toContainText('Change team');
+  // Neither the WLED hotspot nor the ESPHome "Take control" path applies.
+  await expect(done).not.toContainText('4.3.2.1');
+  await expect(done).not.toContainText('Take control');
+  // Switching back to a WLED build brings the WLED steps back.
+  await page.locator(`#variant-seg button[data-variant="${Object.keys(d.firmware.stable)[0]}"]`).click();
+  await expect(done).toContainText('4.3.2.1');
+});
+
 test('step 3 follows a per-variant platform override', async ({ page }) => {
   // No shipping device mixes ecosystems yet, so synthesize one: the M-1 hardware
   // can run ESPHome, and when such a build is offered the registry only needs a
@@ -476,11 +496,20 @@ test('device config: download uses the real filename', async ({ page }) => {
   expect(download.suggestedFilename()).toBe(url.split('/').pop());
 });
 
-test('device config: no section when the device has no config', async ({ page }) => {
-  const d = registry.devices.find((x) => !x.config);
-  test.skip(!d, 'every device has a config');
+test('device config: no section for a variant without a config, and it appears for one with', async ({ page }) => {
+  // Configs are per variant (the M-1's WLED builds have none, its Game Day build does),
+  // so look for a default selection without one rather than a device without any.
+  const d = registry.devices.find((x) => !defaultSel(x).url);
+  test.skip(!d, 'every default selection has a config');
   await page.goto(`/#/${d.id}`);
+  await expect(page.locator('.device-head h1')).toHaveText(d.name);
   await expect(page.locator('.config')).toHaveCount(0);
+  const { channel } = defaultSel(d);
+  const withConfig = Object.keys(d.firmware[channel]).find((v) => d.config && d.config[channel] && d.config[channel][v]);
+  if (withConfig) {
+    await page.locator(`#variant-seg button[data-variant="${withConfig}"]`).click();
+    await expect(page.locator('.config')).toHaveCount(1);
+  }
 });
 
 test('single-firmware devices show the "nothing to choose" note above the release/config sections', async ({ page }) => {

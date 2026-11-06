@@ -42,6 +42,17 @@ WLED-M1 serves the 16.0.1 manifest through an Actions Pages workflow
 (.github/workflows/apollo-pages.yml) that publishes manifest.json plus M-1_full_install.bin
 from the latest GitHub release, so the 16MB image never enters git history.
 
+## Game Day Scoreboard
+
+The M-1 also offers **Game Day Scoreboard (Rev6 only)**, an ESPHome sports scoreboard from
+ApolloAutomation/gameday-scoreboard-main. It flashes that repo's `firmware/moonhub75/` release
+manifest, the build its DIY installer page (`install/diy/`) offers for the M-1. One build covers
+one panel or two side by side (the panel count is picked on the panel's device page). Its
+`platforms` entry is `gameday`, so step 3 walks through Wi-Fi (the installer's prompt or the
+"Game Day xxxxxx" hotspot) and picking a team at `gameday-xxxxxx.local`, with Home Assistant
+optional. The variant follows the repo's releases: its manifest only exists once a release is
+tagged on that repo's `main`.
+
 ## Setup hotspot (verified against the shipped images, not WLED defaults)
 
 Both the 16.0.1 and 14.5.1 Apollo builds broadcast an **open** hotspot named `Apollo M-1`, not

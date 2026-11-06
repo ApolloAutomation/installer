@@ -288,7 +288,7 @@
       "id": "m-1",
       "name": "M-1",
       "category": "LED matrix",
-      "description": "64x64 HUB75 LED matrix controller (WLED firmware)",
+      "description": "64x64 HUB75 LED matrix controller (WLED or Game Day Scoreboard firmware)",
       "image": "images/m-1.jpg",
       "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/M-1_Full_Kit_bd50d749-ee4d-43fd-b2b9-8093d3459388.jpg?v=1754315671",
       "wiki": "https://wiki.apolloautomation.com/products/m1/introduction/",
@@ -299,24 +299,38 @@
         "stable": {
           "WLED 16.0.1 (Rev6 only)": "https://apolloautomation.github.io/WLED-M1/manifest.json",
           "WLED-MM 14.5.1 (Rev6)": "https://apolloautomation.github.io/WLED-MM-M1/Rev6_14.5.1/manifest.json",
-          "WLED-MM 14.5.1 (Rev4)": "https://apolloautomation.github.io/WLED-MM-M1/14.5.1/manifest.json"
+          "WLED-MM 14.5.1 (Rev4)": "https://apolloautomation.github.io/WLED-MM-M1/14.5.1/manifest.json",
+          "Game Day Scoreboard (Rev6 only)": "https://apolloautomation.github.io/gameday-scoreboard-main/firmware/moonhub75/manifest.json"
         }
       },
       "repos": {
         "stable": {
-          "WLED 16.0.1 (Rev6 only)": "ApolloAutomation/WLED-M1"
+          "WLED 16.0.1 (Rev6 only)": "ApolloAutomation/WLED-M1",
+          "Game Day Scoreboard (Rev6 only)": "ApolloAutomation/gameday-scoreboard-main"
         }
       },
       "installers": {
         "stable": {
-          "WLED 16.0.1 (Rev6 only)": null
+          "WLED 16.0.1 (Rev6 only)": null,
+          "Game Day Scoreboard (Rev6 only)": "https://apolloautomation.github.io/gameday-scoreboard-main/install/diy/"
         }
       },
       "variantNotes": {
         "stable": {
           "WLED 16.0.1 (Rev6 only)": "For Rev6 controllers. The revision is printed on the back of the board; on a Rev4, pick WLED-MM 14.5.1 (Rev4) instead.",
           "WLED-MM 14.5.1 (Rev6)": "The earlier WLED-MM firmware, for Rev6 controllers.",
-          "WLED-MM 14.5.1 (Rev4)": "For Rev4 controllers, which can't run WLED 16.0.1."
+          "WLED-MM 14.5.1 (Rev4)": "For Rev4 controllers, which can't run WLED 16.0.1.",
+          "Game Day Scoreboard (Rev6 only)": "Turns the M-1 into a live sports scoreboard that follows your team from ESPN by itself: the NFL, college football, MLB, the NBA, the WNBA, men's college basketball, the NHL, MLS and the Premier League. Rev6 controllers only. Installing it replaces WLED and its settings."
+        }
+      },
+      "config": {
+        "stable": {
+          "Game Day Scoreboard (Rev6 only)": "https://raw.githubusercontent.com/ApolloAutomation/gameday-scoreboard-main/main/firmware/gameday.yaml"
+        }
+      },
+      "platforms": {
+        "stable": {
+          "Game Day Scoreboard (Rev6 only)": "gameday"
         }
       }
     },

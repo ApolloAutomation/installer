@@ -95,9 +95,27 @@ function platformFor(device, channel, variant) {
 
 // Step 3 differs by what the firmware does once installed: ESPHome devices are
 // adopted through the ESPHome integration and Device Builder, WLED devices through
-// the WLED integration and the WLED web UI, and standalone builds (no network at
-// all, like the ornaments' stock firmware) have nothing to add.
+// the WLED integration and the WLED web UI, the Game Day Scoreboard is set up on
+// the panel's own device page (Home Assistant optional), and standalone builds
+// (no network at all, like the ornaments' stock firmware) have nothing to add.
 function stepThreeHtml(device, platform) {
+  if (platform === 'gameday') {
+    return `
+        <h2><span class="num">3</span> Connect it and pick your team</h2>
+        <p>When the install finishes, the installer offers to put the panel on your Wi-Fi (it only
+           joins 2.4 GHz networks). If you skip that, join the <strong>Game Day</strong> hotspot the
+           panel shows, like <code>Game Day 2f6a70</code>, and pick your network on the page that
+           opens. The panel then shows its address, like <code>gameday-2f6a70.local</code>: open it in
+           a browser, tap <strong>Change team</strong>, and you're done.
+           <span class="done-check">✓</span></p>
+        <details class="customize">
+          <summary>Using Home Assistant?</summary>
+          <p>Nothing about the scoreboard needs Home Assistant. If you use it, the panel appears under
+             <strong>Settings → Devices &amp; services</strong> as a discovered <strong>ESPHome</strong>
+             device; click <strong>Configure</strong> to add it. To go back to WLED later, install a
+             WLED firmware from this page.</p>
+        </details>`;
+  }
   if (platform === 'standalone') {
     return `
         <h2><span class="num">3</span> You're done</h2>
