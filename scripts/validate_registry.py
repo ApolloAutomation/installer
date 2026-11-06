@@ -327,8 +327,9 @@ def check_variant_notes_shape(notes, firmware, dev_id):
     return errs
 
 # What step 3 of the wizard tells the user after flashing: ESPHome adoption, WLED
-# setup, or (standalone) nothing to add, for builds with no network at all.
-PLATFORMS = ("esphome", "wled", "standalone")
+# setup, the Game Day Scoreboard's own device page, or (standalone) nothing to
+# add, for builds with no network at all.
+PLATFORMS = ("esphome", "wled", "gameday", "standalone")
 
 def check_platform(platform, dev_id):
     """Validate the optional `platform` field (firmware ecosystem).

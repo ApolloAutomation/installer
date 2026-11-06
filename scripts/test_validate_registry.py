@@ -310,7 +310,7 @@ class PlatformChecks(unittest.TestCase):
         self.assertEqual(vr.check_platform(None, "dev"), [])
 
     def test_known_platforms_ok(self):
-        for p in ("esphome", "wled", "standalone"):
+        for p in ("esphome", "wled", "gameday", "standalone"):
             self.assertEqual(vr.check_platform(p, "dev"), [], p)
 
     def test_unknown_platform_errors(self):
