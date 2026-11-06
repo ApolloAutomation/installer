@@ -225,7 +225,7 @@
       "id": "cast-pro-1",
       "name": "CAST PRO-1",
       "category": "Audio",
-      "description": "Audio casting device with Line In and analog/optical out",
+      "description": "Audio casting device with Line In, analog/optical out and built-in Ethernet",
       "image": "images/cast-pro-1.jpg",
       "imageSource": "https://raw.githubusercontent.com/ApolloAutomation/CAST_PRO-1/main/CAST_PRO_Card.jpg",
       "wiki": "https://wiki.apolloautomation.com/products/castpro1/introduction/",
