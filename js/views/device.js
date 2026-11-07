@@ -103,11 +103,12 @@ function stepThreeHtml(device, platform) {
     return `
         <h2><span class="num">3</span> Connect it and pick your team</h2>
         <p>When the install finishes, the installer offers to put the panel on your Wi-Fi (it only
-           joins 2.4 GHz networks). If you skip that, join the <strong>Game Day</strong> hotspot the
-           panel shows, like <code>Game Day 2f6a70</code>, and pick your network on the page that
-           opens. The panel then shows its address, like <code>gameday-2f6a70.local</code>: open it in
-           a browser, tap <strong>Change team</strong>, and you're done.
-           <span class="done-check">✓</span></p>
+           joins 2.4 GHz networks). If you skip that, point your phone's camera at the QR code on the
+           panel to join its <strong>Game Day</strong> hotspot, like <code>Game Day 2f6a70</code>, and
+           pick your network on the page that opens. Once it's on your Wi-Fi, the panel shows a new QR
+           code and its address, like <code>gameday-2f6a70.local</code>: scan the code with a phone on
+           the same Wi-Fi or open the address in a browser, tap <strong>Change team</strong>, and you're
+           done. No app needed. <span class="done-check">✓</span></p>
         <details class="customize">
           <summary>Using Home Assistant?</summary>
           <p>Nothing about the scoreboard needs Home Assistant. If you use it, the panel appears under
