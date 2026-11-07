@@ -320,7 +320,7 @@
           "WLED 16.0.1 (Rev6 only)": "For Rev6 controllers. The revision is printed on the back of the board; on a Rev4, pick WLED-MM 14.5.1 (Rev4) instead.",
           "WLED-MM 14.5.1 (Rev6)": "The earlier WLED-MM firmware, for Rev6 controllers.",
           "WLED-MM 14.5.1 (Rev4)": "For Rev4 controllers, which can't run WLED 16.0.1.",
-          "Game Day Scoreboard (Rev6 only)": "Turns the M-1 into a live sports scoreboard that follows your team from ESPN by itself: the NFL, college football, MLB, the NBA, the WNBA, men's college basketball, the NHL, MLS and the Premier League. Rev6 controllers only. Installing it replaces WLED and its settings."
+          "Game Day Scoreboard (Rev6 only)": "Turns the M-1 into a live sports scoreboard that follows your team from ESPN by itself: the NFL, college football, MLB, the NBA, the WNBA, men's college basketball, the NHL, MLS and the Premier League, plus the PGA and LPGA Tours, Formula 1 and the NASCAR Cup Series. Rev6 controllers only. Installing it replaces WLED and its settings."
         }
       },
       "config": {
