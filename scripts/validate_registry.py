@@ -194,6 +194,8 @@ def check_device_shape(dev, where):
         url = dev.get(key)
         if url is not None and (not isinstance(url, str) or not url.startswith("https://")):
             errs.append(f"{where}: {key} is not an https URL")
+    if "unlisted" in dev and not isinstance(dev["unlisted"], bool):
+        errs.append(f"{where}: unlisted must be true or false")
     firmware = dev.get("firmware")
     if not isinstance(firmware, dict) or not firmware.get("stable"):
         errs.append(f"{where}: no stable channel")

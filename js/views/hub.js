@@ -1,6 +1,8 @@
 // js/views/hub.js — device grid with category filters
 export function renderHub(el, registry, missingId) {
-  const cats = [...new Set(registry.devices.map((d) => d.category))];
+  // Unlisted devices are reachable by link only.
+  const listed = registry.devices.filter((d) => !d.unlisted);
+  const cats = [...new Set(listed.map((d) => d.category))];
   el.innerHTML = `
     <section class="hero">
       <h1>Flash your Apollo device from the browser</h1>
@@ -12,7 +14,7 @@ export function renderHub(el, registry, missingId) {
       ${cats.map((c) => `<button data-cat="${c}" aria-pressed="false">${c}</button>`).join('')}
     </div>
     <div class="device-grid">
-      ${registry.devices.map((d) => `
+      ${listed.map((d) => `
         <a class="device-card" href="#/${d.id}" data-cat="${d.category}">
           <img src="${d.image}" alt="" loading="lazy">
           <h3>${d.name}</h3>

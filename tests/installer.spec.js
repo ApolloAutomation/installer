@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const registry = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'devices.json'), 'utf8'));
+const listed = registry.devices.filter((d) => !d.unlisted);
 
 const manifestFor = (file, version = '1.0.0') => JSON.stringify({
   name: 't', version,
@@ -46,10 +47,23 @@ const noSerial = (page) => page.addInitScript(() => {
   Object.defineProperty(Navigator.prototype, 'serial', { get: () => undefined });
 });
 
-test('hub renders a card for every registry device', async ({ page }) => {
+test('hub renders a card for every listed registry device', async ({ page }) => {
   await page.goto('/');
-  for (const d of registry.devices) {
+  for (const d of listed) {
     await expect(page.locator(`a.device-card[href="#/${d.id}"] h3`)).toHaveText(d.name);
+  }
+});
+
+test('unlisted devices have no hub card but open by link', async ({ page }) => {
+  const hidden = registry.devices.filter((d) => d.unlisted);
+  test.skip(hidden.length === 0, 'no unlisted devices in the registry');
+  await page.goto('/');
+  await expect(page.locator('a.device-card')).toHaveCount(listed.length);
+  for (const d of hidden) {
+    await expect(page.locator(`a.device-card[href="#/${d.id}"]`)).toHaveCount(0);
+    await page.goto(`/#/${d.id}`);
+    await expect(page.locator('.device-page h1')).toHaveText(d.name);
+    await page.goto('/');
   }
 });
 
@@ -65,7 +79,7 @@ test('category filter shows exactly the cards in that category', async ({ page }
   // Pick a category deterministically (most-populated, alphabetical tiebreak)
   // instead of depending on devices[0]'s position in the registry.
   const byCat = {};
-  for (const d of registry.devices) (byCat[d.category] ||= []).push(d.id);
+  for (const d of listed) (byCat[d.category] ||= []).push(d.id);
   const cat = Object.keys(byCat)
     .sort((a, b) => byCat[b].length - byCat[a].length || a.localeCompare(b))[0];
   const expectedIds = byCat[cat].slice().sort();
@@ -78,7 +92,7 @@ test('category filter shows exactly the cards in that category', async ({ page }
   expect(visibleIds).toEqual(expectedIds);
 
   await page.locator('.filters button[data-cat="all"]').click();
-  await expect(page.locator('a.device-card:visible')).toHaveCount(registry.devices.length);
+  await expect(page.locator('a.device-card:visible')).toHaveCount(listed.length);
 });
 
 test('filter pills expose aria-pressed reflecting the active filter', async ({ page }) => {
@@ -558,7 +572,7 @@ test('every device and variant puts its own manifest on the install button', asy
 test('every hub card image loads', async ({ page }) => {
   await page.goto('/');
   const imgs = page.locator('a.device-card img');
-  await expect(imgs).toHaveCount(registry.devices.length);
+  await expect(imgs).toHaveCount(listed.length);
   for (const img of await imgs.all()) {
     await img.scrollIntoViewIfNeeded();
     await expect.poll(() => img.evaluate((el) => el.complete && el.naturalWidth)).toBeGreaterThan(0);
