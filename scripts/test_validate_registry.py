@@ -386,6 +386,11 @@ class DeviceShape(InTempRepo):
             errs = vr.check_device_shape(d, "x")
             self.assertTrue(any(repr(key) in e for e in errs), (key, errs))
 
+    def test_unlisted_must_be_boolean(self):
+        self.assertEqual(vr.check_device_shape(device(unlisted=True), "msr-1"), [])
+        errs = vr.check_device_shape(device(unlisted="yes"), "x")
+        self.assertTrue(any("unlisted" in e for e in errs), errs)
+
     def test_id_must_be_lowercase_kebab(self):
         for bad in ("MSR-1", "msr_1", "msr 1", "-msr", "msr--1"):
             errs = vr.check_device_shape(device(id=bad), "x")

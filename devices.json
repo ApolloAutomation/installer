@@ -448,6 +448,33 @@
           "Basic (No Wi-Fi)": "standalone"
         }
       }
+    },
+    {
+      "id": "pump-1-standalone",
+      "name": "PUMP-1 Standalone Auto Refill",
+      "category": "Pump",
+      "unlisted": true,
+      "description": "Refills a tank on its own: the pump starts when the lower sensor goes dry and stops when the upper sensor goes wet. Control it from its own web page; Home Assistant is optional.",
+      "image": "images/pump-1-standalone.jpg",
+      "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/PUMP-1_WWHA_EH_and_H.jpg?v=1771963336",
+      "wiki": "https://wiki.apolloautomation.com/products/pump1/introduction/",
+      "repo": "ApolloAutomation/PUMP-1-Standalone-Installer",
+      "githubPagesInstaller": "https://apolloautomation.github.io/PUMP-1-Standalone-Installer/",
+      "firmware": {
+        "stable": {
+          "Standalone Auto Refill": "https://apolloautomation.github.io/PUMP-1-Standalone-Installer/firmware/manifest.json"
+        }
+      },
+      "variantNotes": {
+        "stable": {
+          "Standalone Auto Refill": "Use Chrome or Edge and a USB-C cable that carries data. Hold the boot button while you plug the PUMP-1 in, click <b>Connect</b>, check <b>Erase device</b>, then click <b>Install</b>."
+        }
+      },
+      "config": {
+        "stable": {
+          "Standalone Auto Refill": "https://raw.githubusercontent.com/ApolloAutomation/PUMP-1/customer/standalone-auto-refill/Integrations/ESPHome/PUMP-1_Standalone_Auto_Refill.yaml"
+        }
+      }
     }
   ]
 }
