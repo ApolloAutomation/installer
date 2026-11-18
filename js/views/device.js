@@ -100,9 +100,10 @@ const WLED_SETUP = {
   },
   'mled-1': {
     hotspot: 'Apollo MLED-1 Hotspot',
-    after: `Then set it up for your strip: open its web UI at the device's IP address, or use
-           the WLED mobile app, and under <strong>Config → LED Preferences</strong> set the LED type,
-           color order and number of LEDs to match. The strip's data line is on GPIO 13.`,
+    // Shown before the Home Assistant step.
+    strip: `Once it is on your Wi-Fi, set it up for your strip: open its web UI at the device's IP
+           address, or use the WLED mobile app, and under <strong>Config → LED Preferences</strong> set
+           the LED type, color order and number of LEDs to match. The strip's data line is on GPIO 13.`,
   },
 };
 
@@ -145,11 +146,12 @@ function stepThreeHtml(device, platform) {
     return heading + `
         <p>If you did not set Wi-Fi during install, join the open
            <strong>${setup.hotspot || `Apollo ${device.name}`}</strong> Wi-Fi hotspot the device broadcasts, then open
-           <code>4.3.2.1</code> in a browser and pick your network.${setup.extra ? ` ${setup.extra}` : ''} Once it is on your Wi-Fi, go to
+           <code>4.3.2.1</code> in a browser and pick your network.${setup.extra ? ` ${setup.extra}` : ''}${setup.strip ? `</p>
+        <p>${setup.strip}</p>
+        <p>Then go to` : ' Once it is on your Wi-Fi, go to'}
            <strong>Settings → Devices &amp; services</strong> in Home Assistant, where it appears as a
            discovered <strong>WLED</strong> device. Click <strong>Configure</strong>, and you're done.
-           <span class="done-check">✓</span></p>${setup.after ? `
-        <p>${setup.after}</p>` : ''}
+           <span class="done-check">✓</span></p>
         <details class="customize">
           <summary>Want to customize the firmware?</summary>
           <p>The ${device.name} runs WLED, so effects and settings are customized in WLED itself.
