@@ -285,6 +285,27 @@
       }
     },
     {
+      "id": "nfc-1",
+      "name": "NFC-1",
+      "category": "NFC",
+      "description": "NFC tag reader, writer and emulator (PN7160)",
+      "image": "images/nfc-1.jpg",
+      "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/20261022_134330.jpg?v=1792691149&height=600&crop=center",
+      "wiki": "https://wiki.apolloautomation.com/products/nfc1/introduction/",
+      "repo": "ApolloAutomation/NFC-1",
+      "githubPagesInstaller": "https://apolloautomation.github.io/NFC-1/",
+      "firmware": {
+        "stable": {
+          "Standard": "https://apolloautomation.github.io/NFC-1/firmware/manifest.json"
+        }
+      },
+      "config": {
+        "stable": {
+          "Standard": "https://raw.githubusercontent.com/ApolloAutomation/NFC-1/main/Integrations/ESPHome/NFC-1.yaml"
+        }
+      }
+    },
+    {
       "id": "m-1",
       "name": "M-1",
       "category": "LED matrix",
