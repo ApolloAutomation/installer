@@ -335,6 +335,23 @@
       }
     },
     {
+      "id": "mled-1",
+      "name": "MLED-1",
+      "category": "LED controller",
+      "description": "Mini WLED controller for addressable LED strips: 5V 3A, one WAGO output",
+      "image": "images/mled-1.jpg",
+      "imageSource": "https://cdn.shopify.com/s/files/1/0792/0959/5187/files/20261102_165108.jpg?v=1793665448&height=600&crop=center",
+      "wiki": "https://wiki.apolloautomation.com/products/mled1/introduction/",
+      "platform": "wled",
+      "repo": "ApolloAutomation/MLED-1",
+      "githubPagesInstaller": "https://apolloautomation.github.io/MLED-1/",
+      "firmware": {
+        "stable": {
+          "WLED": "https://apolloautomation.github.io/MLED-1/firmware/manifest.json"
+        }
+      }
+    },
+    {
       "id": "h-1",
       "name": "H-1",
       "category": "Ornament",
