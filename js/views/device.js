@@ -102,7 +102,7 @@ const WLED_SETUP = {
     hotspot: 'Apollo MLED-1 Hotspot',
     // Shown before the Home Assistant step.
     strip: `Once it is on your Wi-Fi, set it up for your strip: open its web UI at the device's IP
-           address, or use the WLED mobile app, and under <strong>Config → LED Preferences</strong> set
+           address, or use the WLED mobile app, and under <strong>Config → LED &amp; Hardware</strong> set
            the LED type, color order and number of LEDs to match. The strip's data line is on GPIO 13.`,
   },
 };

@@ -397,12 +397,12 @@ test('step 3 names each WLED board\'s own hotspot and keeps the setup card M-1-o
   // No display, so no setup card or QR code.
   await expect(done).not.toContainText('setup card');
   await expect(done).not.toContainText('QR');
-  await expect(done).toContainText('LED Preferences');
+  await expect(done).toContainText('LED & Hardware');
   await expect(done).toContainText('GPIO 13');
   await expect(done).toContainText('discovered');
   // LED setup comes before "you're done".
   const text = await done.innerText();
-  expect(text.indexOf('LED Preferences')).toBeLessThan(text.indexOf("you're done"));
+  expect(text.indexOf('LED & Hardware')).toBeLessThan(text.indexOf("you're done"));
   await expect(done).not.toContainText('Take control');
 });
 
