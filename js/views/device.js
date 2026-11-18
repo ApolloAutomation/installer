@@ -93,6 +93,20 @@ function platformFor(device, channel, variant) {
   return device.platform || 'esphome';
 }
 
+// WLED setup that differs per board; default hotspot is "Apollo <name>".
+const WLED_SETUP = {
+  'm-1': {
+    extra: 'On 16.0.1 the panel itself shows a setup card with that address and a QR code.',
+  },
+  'mled-1': {
+    hotspot: 'Apollo MLED-1 Hotspot',
+    // Shown before the Home Assistant step.
+    strip: `Once it is on your Wi-Fi, set it up for your strip: open its web UI at the device's IP
+           address, or use the WLED mobile app, and under <strong>Config → LED &amp; Hardware</strong> set
+           the LED type, color order and number of LEDs to match. The strip's data line is on GPIO 13.`,
+  },
+};
+
 // Step 3 differs by what the firmware does once installed: ESPHome devices are
 // adopted through the ESPHome integration and Device Builder, WLED devices through
 // the WLED integration and the WLED web UI, the Game Day Scoreboard is set up on
@@ -128,11 +142,13 @@ function stepThreeHtml(device, platform) {
   }
   const heading = '<h2><span class="num">3</span> Add to Home Assistant</h2>';
   if (platform === 'wled') {
+    const setup = WLED_SETUP[device.id] || {};
     return heading + `
         <p>If you did not set Wi-Fi during install, join the open
-           <strong>Apollo ${device.name}</strong> Wi-Fi hotspot the device broadcasts, then open
-           <code>4.3.2.1</code> in a browser and pick your network. On 16.0.1 the panel itself
-           shows a setup card with that address and a QR code. Once it is on your Wi-Fi, go to
+           <strong>${setup.hotspot || `Apollo ${device.name}`}</strong> Wi-Fi hotspot the device broadcasts, then open
+           <code>4.3.2.1</code> in a browser and pick your network.${setup.extra ? ` ${setup.extra}` : ''}${setup.strip ? `</p>
+        <p>${setup.strip}</p>
+        <p>Then go to` : ' Once it is on your Wi-Fi, go to'}
            <strong>Settings → Devices &amp; services</strong> in Home Assistant, where it appears as a
            discovered <strong>WLED</strong> device. Click <strong>Configure</strong>, and you're done.
            <span class="done-check">✓</span></p>

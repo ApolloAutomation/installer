@@ -380,6 +380,32 @@ test('step 3 gives WLED instructions on a WLED device, not ESPHome ones', async 
   await expect(done).not.toContainText('dashboard_import');
 });
 
+test('step 3 names each WLED board\'s own hotspot and keeps the setup card M-1-only', async ({ page }) => {
+  const m1 = registry.devices.find((x) => x.id === 'm-1');
+  const mled = registry.devices.find((x) => x.id === 'mled-1');
+  test.skip(!m1 || !mled, 'needs m-1 and mled-1 in registry');
+
+  await page.goto('/#/m-1');
+  const done = page.locator('#step-done');
+  await expect(done.locator('strong').first()).toHaveText('Apollo M-1');
+  await expect(done).toContainText('setup card with that address and a QR code');
+  await expect(done).not.toContainText('GPIO');
+
+  await page.goto('/#/mled-1');
+  await expect(done).toContainText('4.3.2.1');
+  await expect(done.locator('strong').first()).toHaveText('Apollo MLED-1 Hotspot');
+  // No display, so no setup card or QR code.
+  await expect(done).not.toContainText('setup card');
+  await expect(done).not.toContainText('QR');
+  await expect(done).toContainText('LED & Hardware');
+  await expect(done).toContainText('GPIO 13');
+  await expect(done).toContainText('discovered');
+  // LED setup comes before "you're done".
+  const text = await done.innerText();
+  expect(text.indexOf('LED & Hardware')).toBeLessThan(text.indexOf("you're done"));
+  await expect(done).not.toContainText('Take control');
+});
+
 test('step 3 walks a Game Day Scoreboard install through Wi-Fi and picking a team', async ({ page }) => {
   const d = registry.devices.find((x) => x.platforms && x.platforms.stable
     && Object.values(x.platforms.stable).includes('gameday'));
